@@ -269,7 +269,7 @@ CODEX AI is provided as an extensible open-source automation project. Its securi
 
 [![Main WhatsApp Channel](https://img.shields.io/badge/WhatsApp%20Channel-Follow-25D366?style=for-the-badge&logo=whatsapp)](https://whatsapp.com/channel/0029Vb78BHmL2AU7fsANSH2y)
 [![Backup WhatsApp Channel](https://img.shields.io/badge/Backup%20Channel-Follow-25D366?style=for-the-badge&logo=whatsapp)](https://whatsapp.com/channel/0029Vb6sMEy96H4VI2w3I50F)
-[![Support Group](https://img.shields.io/badge/Support%20Group-Join-25D366?style=for-the-badge&logo=whatsapp)](https://chat.whatsapp.com/If0d4XKHITO2NUf6YvQ3Eg?s=cl&p=a&mlu=4&ilr=4)
+[![Support Group](https://img.shields.io/badge/Support%20Group-Join-25D366?style=for-the-badge&logo=whatsapp)](https://chat.whatsapp.com/D4h54lfB8neBvOzXMW19Tm?s=cl&p=a&mlu=4&ilr=4)
 [![Telegram Channel](https://img.shields.io/badge/Telegram%20Channel-Join-26A5E4?style=for-the-badge&logo=telegram)](https://t.me/CODEX_AIV3)
 [![Telegram Group](https://img.shields.io/badge/Telegram%20Group-Join-26A5E4?style=for-the-badge&logo=telegram)](https://t.me/CODEXV3)
 [![Developer](https://img.shields.io/badge/Developer-Contact-B88CFF?style=for-the-badge&logo=telegram)](https://t.me/codexverified)
