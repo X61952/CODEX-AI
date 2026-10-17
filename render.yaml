@@ -7,7 +7,7 @@ services:
     runtime: node
     plan: starter
     numInstances: 1            # exactly one instance owns the WhatsApp session
-    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile
+    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm exec playwright install --with-deps chromium
     # The bot keeps its login in ./session and settings in ./database. A Render
     # disk mounts at ONE path, so both folders are linked into it and survive
     # deploys. Existing default database files are copied in once (cp -n).

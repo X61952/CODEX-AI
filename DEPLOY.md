@@ -12,6 +12,7 @@ curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt in
 sudo npm install -g pnpm pm2
 git clone <your-repo-url> codex-ai && cd codex-ai
 pnpm install --frozen-lockfile
+pnpm exec playwright install --with-deps chromium
 nano config.json                      # set owner number, prefix, etc.
 export SESSION_ID="<your-session-id>" # or add it to the server's private environment
 npm run pm2:start
@@ -25,11 +26,18 @@ Do not also run `node index.js` by hand.
 Free plans sleep and have no disk, so a free Render service cannot stay up.
 Create a **Blueprint** from this repo (it reads `render.yaml`), then in the dashboard
 set `SESSION_ID`. Do **not** use PM2 on Render. Render restarts the service itself.
+The Blueprint build installs Playwright's Chromium browser and its Linux
+system dependencies for the `.screenshot` and `.screenrecord` commands.
 
 ## 3) Pterodactyl / bot panel
 Use a Node.js **22** egg. Startup command: `npm start`. Upload the project, run the
-install/`pnpm install`, set `SESSION_ID` in the panel's variables, then Start. The
-panel restarts it; do **not** use PM2. Keep one server per session.
+install/`pnpm install` and `pnpm exec playwright install --with-deps chromium`
+in an image/container that provides the required Linux packages, set `SESSION_ID`
+in the panel's variables, then Start. The panel restarts it; do **not** use PM2.
+Keep one server per session.
+
+On Windows development machines, install the browser with
+`pnpm exec playwright install chromium`.
 
 ## 4) Heroku / Docker / others
 Heroku's filesystem resets at least daily, so the login and database would be wiped:

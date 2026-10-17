@@ -70,6 +70,7 @@
         "pdfkit": "^0.17.2",
         "pino": "^8.17.2",
         "play-dl": "^1.9.7",
+        "playwright": "^1.64.1",
         "qrcode": "^1.5.4",
         "qrcode-terminal": "^0.12.0",
         "ruhend-scraper": "^9.0.5",
