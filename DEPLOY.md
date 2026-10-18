@@ -30,11 +30,13 @@ The Blueprint build installs Playwright's Chromium browser and its Linux
 system dependencies for the `.screenshot` and `.screenrecord` commands.
 
 ## 3) Pterodactyl / bot panel
-Use a Node.js **22** egg. Startup command: `npm start`. Upload the project, run the
-install/`pnpm install` and `pnpm exec playwright install --with-deps chromium`
-in an image/container that provides the required Linux packages, set `SESSION_ID`
-in the panel's variables, then Start. The panel restarts it; do **not** use PM2.
-Keep one server per session.
+Use a Node.js **22** egg. Startup command: `npm start`. Upload the project, install
+dependencies with `pnpm install`, set `SESSION_ID` in the panel's variables, then
+Start. On startup, the bot checks for Playwright Chromium and downloads it if
+missing; the first boot may take several minutes and needs outbound network access.
+The panel restarts the service; do **not** use PM2. Keep one server per session.
+If Chromium reports missing Linux shared libraries, ask the host to add Playwright's
+system dependencies to the Node.js egg/container image.
 
 On Windows development machines, install the browser with
 `pnpm exec playwright install chromium`.

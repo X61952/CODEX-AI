@@ -1,15 +1,53 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
 const test = require('node:test');
 const {
   CaptureError,
+  ensureChromiumInstalled,
   getUserError,
   isPublicAddress,
   normalizeTargetUrl,
   resolvePublicHost,
   validateTarget,
 } = require('../lib/webCapture');
+
+test('skips Chromium installation when the browser executable already exists', async (t) => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-browser-test-'));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const executablePath = path.join(directory, 'chrome');
+  await fs.writeFile(executablePath, '');
+  let installCalls = 0;
+
+  const installed = await ensureChromiumInstalled({
+    chromium: { executablePath: () => executablePath },
+    install: async () => { installCalls++; },
+  });
+
+  assert.equal(installed, false);
+  assert.equal(installCalls, 0);
+});
+
+test('installs Chromium once when the executable is missing', async (t) => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-browser-test-'));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const executablePath = path.join(directory, 'chrome');
+  let installCalls = 0;
+
+  const installed = await ensureChromiumInstalled({
+    chromium: { executablePath: () => executablePath },
+    install: async () => {
+      installCalls++;
+      await fs.writeFile(executablePath, '');
+    },
+  });
+
+  assert.equal(installed, true);
+  assert.equal(installCalls, 1);
+});
 
 test('normalizes public website URLs and adds HTTPS when omitted', () => {
   assert.equal(normalizeTargetUrl('example.com/path').href, 'https://example.com/path');
@@ -83,4 +121,11 @@ test('rejects DNS failures with a user-friendly error', async () => {
 
 test('reports a professional validation error for invalid recording duration', () => {
   assert.match(getUserError(new CaptureError('INVALID_DURATION'), 'screenrecord'), /between 1 and 10 seconds/i);
+});
+
+test('reports a clear error when host startup cannot install Chromium', () => {
+  assert.match(
+    getUserError(new CaptureError('BROWSER_INSTALL_FAILED'), 'screenshot'),
+    /host could not install the browser/i,
+  );
 });
