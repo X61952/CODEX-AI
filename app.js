@@ -548,6 +548,14 @@ class CODEXAI {
     console.log(chalk.green(`(${loaded}) cmds loaded`));
     this.successCmds = loaded;
     console.log('');
+    try {
+      await require('./lib/webCapture').ensureChromiumInstalled();
+    } catch (err) {
+      console.error(
+        '[web-capture] Chromium setup failed; .screenshot and .screenrecord will not work until it is installed:',
+        err.cause || err,
+      );
+    }
     await startConnection(this);
   }
 
