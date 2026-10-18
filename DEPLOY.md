@@ -27,7 +27,7 @@ Free plans sleep and have no disk, so a free Render service cannot stay up.
 Create a **Blueprint** from this repo (it reads `render.yaml`), then in the dashboard
 set `SESSION_ID`. Do **not** use PM2 on Render. Render restarts the service itself.
 The Blueprint build installs Playwright's Chromium browser and its Linux
-system dependencies for the `.screenshot` and `.screenrecord` commands.
+system dependencies for the `.screenshot` command.
 
 ## 3) Pterodactyl / bot panel
 Use a Node.js **22** egg. Startup command: `npm start`. Upload the project, install

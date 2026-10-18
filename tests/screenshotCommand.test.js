@@ -5,13 +5,9 @@ const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 const test = require('node:test');
 
-for (const [filename, commandName, example] of [
-  ['screenshot.js', 'screenshot', '.screenshot https://example.com'],
-  ['screenrecord.js', 'screenrecord', '.screenrecord https://example.com 5'],
-]) {
-  test(`${commandName} without a URL replies with usage when Playwright is missing`, () => {
-    const commandPath = path.join(__dirname, '..', 'commands', 'general', filename);
-    const script = `
+test('screenshot without a URL replies with usage when Playwright is missing', () => {
+  const commandPath = path.join(__dirname, '..', 'commands', 'general', 'screenshot.js');
+  const script = `
     const Module = require('node:module');
     const originalLoad = Module._load;
     Module._load = function(request, parent, isMain) {
@@ -30,7 +26,7 @@ for (const [filename, commandName, example] of [
       reply: async (text) => { replyText = text; },
     }).then(() => {
       if (!replyText) throw new Error('Expected a usage reply');
-      if (!replyText.includes(${JSON.stringify(example)})) {
+      if (!replyText.includes('.screenshot https://example.com')) {
         throw new Error('Usage reply did not include an example URL');
       }
     }).catch((error) => {
@@ -44,5 +40,4 @@ for (const [filename, commandName, example] of [
   });
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  });
-}
+});

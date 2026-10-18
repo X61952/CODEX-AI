@@ -552,7 +552,7 @@ class CODEXAI {
       await require('./lib/webCapture').ensureChromiumInstalled();
     } catch (err) {
       console.error(
-        '[web-capture] Chromium setup failed; .screenshot and .screenrecord will not work until it is installed:',
+        '[web-capture] Chromium setup failed; .screenshot will not work until it is installed:',
         err.cause || err,
       );
     }

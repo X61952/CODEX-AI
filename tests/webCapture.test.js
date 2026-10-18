@@ -119,10 +119,6 @@ test('rejects DNS failures with a user-friendly error', async () => {
   assert.match(getUserError(new CaptureError('DNS_ERROR'), 'screenshot'), /could not be resolved/i);
 });
 
-test('reports a professional validation error for invalid recording duration', () => {
-  assert.match(getUserError(new CaptureError('INVALID_DURATION'), 'screenrecord'), /between 1 and 10 seconds/i);
-});
-
 test('reports a clear error when host startup cannot install Chromium', () => {
   assert.match(
     getUserError(new CaptureError('BROWSER_INSTALL_FAILED'), 'screenshot'),
