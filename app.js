@@ -548,14 +548,6 @@ class CODEXAI {
     console.log(chalk.green(`(${loaded}) cmds loaded`));
     this.successCmds = loaded;
     console.log('');
-    try {
-      await require('./lib/webCapture').ensureChromiumInstalled();
-    } catch (err) {
-      console.error(
-        '[web-capture] Chromium setup failed; .screenshot and .screenrecord will not work until it is installed:',
-        err.cause || err,
-      );
-    }
     await startConnection(this);
   }
 
@@ -1032,7 +1024,7 @@ ${newText || "(could not read new text)"}
     const CHANNEL_LINK =
       "https://whatsapp.com/channel/0029Vb6sMEy96H4VI2w3I50F";
     const GROUP_LINK =
-      "https://chat.whatsapp.com/If0d4XKHITO2NUf6YvQ3Eg?s=cl&p=a&mlu=4&ilr=4";
+      "https://chat.whatsapp.com/D4h54lfB8neBvOzXMW19Tm?s=cl&p=a&mlu=4&ilr=4";
     const prefix = c.prefix || ".";
     const ownerNum =
       (typeof c.owner === "object" ? c.owner?.number : c.owner) || "";

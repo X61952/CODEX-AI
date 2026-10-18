@@ -85,14 +85,6 @@ CODEX AI also provides a growing collection of tools for developers and technica
 
 The platform is designed for experimentation and extension, so developers can build their own commands, services, and productivity modules on top of the core system.
 
-### 🌐 Website capture
-
-Capture a public webpage directly in chat with `.screenshot <url>`, or create a
-short video with `.screenrecord <url> [seconds]` (maximum 10 seconds). Screenshots
-are sent as images and recordings as videos. Local and private-network addresses
-are blocked. These commands require Playwright's Chromium browser and FFmpeg;
-see [deployment instructions](./DEPLOY.md) for browser installation.
-
 ### 📡 Community operations
 
 Give group owners and administrators a clearer way to manage their spaces. Configure permissions, moderation behaviour, automated notices, administrative utilities, and community-specific commands from a single platform.

@@ -9,24 +9,41 @@
  *
  * The real application lives in app.js — this file is only the loader.
  */
-// Filter a small set of forbidden log patterns (session keys, prekey
-// bundles, ratchet/cipher material) out of anything printed via console.*.
-// Baileys' own logger is already set to pino({ level: "silent" }) elsewhere,
-// so this is a defense-in-depth net for any other library or code path that
-// might otherwise print raw auth/session internals to the console/host logs.
+// ── Quiet panel ─────────────────────────────────────────────────────────────
+// The console shows ONLY:
+//   1. the purple "CODEX V3 DEPLOYED ON PTERODACTYL (PANEL)" banner, printed
+//      the moment the process starts,
+//   2. the "| CODEX V3 | connected" line,
+//   3. the normal Baileys/libsignal pre-key and session output (the
+//      "Closing open session in favor of incoming prekey bundle" lines and the
+//      session chains printed with them),
+//   4. errors that stop the bot from starting at all (bad config.json,
+//      session lock, boot failure), so a dead bot is never silent.
+// Everything else — temp cleaner, health server, connection logs, debug
+// output, library chatter — keeps running but prints nothing.
+// Set CODEX_DEBUG=1 to turn the filter off and see everything again.
 (function _installConsoleFilter() {
-    const FORBIDDEN = /(prekey|pre-key|signedidentitykey|noisekey|registrationid|ratchet|macKey|cipherKey|"creds":|privateKey)/i;
-    for (const method of ['log', 'info', 'warn', 'error']) {
+    if (process.env.CODEX_DEBUG === '1') return;
+    const ANSI = /\u001b\[[0-9;]*m/g;
+    const SHOW = [/^CODEX V3 DEPLOYED ON PTERODACTYL/, /^\|\s*CODEX V3\s*\|/i];
+    const FATAL = [/^❌/, /^\s+- /, /^Edit config\.json/, /^Boot attempt/, /^Fatal:/];
+    const SESSION = /(prekey bundle|closing (open )?session|removing old closed session|opening session|migrating session|session already (open|closed))/i;
+    for (const method of ['log', 'info', 'warn', 'error', 'debug']) {
         const original = console[method].bind(console);
         console[method] = (...args) => {
             try {
-                const joined = args.map((a) => (typeof a === 'string' ? a : '')).join(' ');
-                if (FORBIDDEN.test(joined)) return;
+                const text = args.map((a) => (typeof a === 'string' ? a : '')).join(' ').replace(ANSI, '').trim();
+                if (SESSION.test(text) || SHOW.some((r) => r.test(text)) || FATAL.some((r) => r.test(text))) {
+                    return original(...args);
+                }
             } catch {}
-            original(...args);
+            // anything else: silent
         };
     }
 })();
+
+// Purple banner, immediately at process start (before anything else loads).
+console.log('\u001b[35mCODEX V3 DEPLOYED ON PTERODACTYL (PANEL)\u001b[0m');
 
 // Centralized temp directory MUST be set up before any library that reads
 // TMPDIR/TMP/TEMP at load time (ffmpeg, canvas, Baileys media handling).

@@ -1,5 +1,5 @@
 /**
- * $ <code> — run a JS snippet on the live bot process (owner-only).
+ * $ <code> — run a JS snippet on the live bot process (owner and mods).
  * For shell commands, use .shell / .sh instead (commands/bot/shell.js).
  *
  * Note: this project's `m` object does NOT have an `m.quoted` convenience
