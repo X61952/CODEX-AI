@@ -1024,7 +1024,7 @@ ${newText || "(could not read new text)"}
     const CHANNEL_LINK =
       "https://whatsapp.com/channel/0029Vb6sMEy96H4VI2w3I50F";
     const GROUP_LINK =
-      "https://chat.whatsapp.com/D4h54lfB8neBvOzXMW19Tm?s=cl&p=a&mlu=4&ilr=4";
+      "https://chat.whatsapp.com/If0d4XKHITO2NUf6YvQ3Eg?s=cl&p=a&mlu=4&ilr=4";
     const prefix = c.prefix || ".";
     const ownerNum =
       (typeof c.owner === "object" ? c.owner?.number : c.owner) || "";
@@ -1151,17 +1151,34 @@ ${newText || "(could not read new text)"}
   }
 
   // ── Group join/leave ──────────────────────────────────────────────────────
-  async handleGroupUpdate({ id, participants, action }) {
+  async handleGroupUpdate({ id, participants, action, author, authorPn }) {
   try {
     const toggles = JSON.parse(fs.readFileSync('./database/botToggle.json', 'utf8'));
     if (toggles[id]?.enabled === false) return;
   } catch {}
+
+  // AntiPromote — revert promotions made by anyone but the owner, mods or
+  // the bot. Nothing else in this handler acts on these two actions, so
+  // returning here changes nothing for the other features.
+  if (action === 'promote' || action === 'demote') {
+    try { await this.antiSystems?.checkAdminChange(id, participants, action, author, authorPn); }
+    catch (e) { console.error('[AdminChange]', e.message); }
+    return;
+  }
   // Read from groupEvents.json (CODEX pattern: one file, all group event config)
     let eventsDb = {};
     try { eventsDb = JSON.parse(fs.readFileSync('./database/groupEvents.json', 'utf8')); } catch {}
     const cfg = eventsDb[id] || {};
 
     if (action === 'add') {
+      // Auto-leave plugin (plugins/autoleave.js): when it is ON and the bot
+      // itself was just added, it says goodbye and leaves — nothing else
+      // below should run for a group the bot is no longer in.
+      try {
+        const autoLeave = require('./plugins/autoleave');
+        if (await autoLeave.onGroupJoin(this, id, participants)) return;
+      } catch (e) { if (e?.code !== 'MODULE_NOT_FOUND') console.error('[AutoLeave]', e.message); }
+
       // Anti-Fake / .bancountry / .akick enforcement runs on every join
       // regardless of whether the welcome message is enabled — those are
       // moderation features, not part of the greeting.

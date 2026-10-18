@@ -18,6 +18,12 @@ module.exports = {
 
         try {
             const groupId = await bot.sock.groupAcceptInvite(match[1]);
+            // The owner joined on purpose — plugins/autoleave.js must not
+            // treat this as "someone added the bot".
+            if (groupId) {
+                bot._joinedByCommand = bot._joinedByCommand || new Map();
+                bot._joinedByCommand.set(groupId, Date.now());
+            }
             let name = groupId;
             try {
                 const meta = await bot.sock.groupMetadata(groupId);

@@ -1,5 +1,5 @@
 /**
- * .eval — run a JS snippet on the live bot process (owner-only).
+ * $ <code> — run a JS snippet on the live bot process (owner-only).
  * For shell commands, use .shell / .sh instead (commands/bot/shell.js).
  *
  * Note: this project's `m` object does NOT have an `m.quoted` convenience
@@ -16,14 +16,19 @@ module.exports = {
     category: 'owner',
     reactions: { start: '🔐' },
     description: 'Run a JS snippet on the live bot process',
-    usage: '.$ <code>',
+    usage: '$ <code>',
     ownerOnly: true,
+    // Triggers ONLY as a bare `$ <code>` — `.$ <code>` (with the prefix) does nothing.
+    noPrefix: true,
 
     async execute(bot, m, args) {
         const text = args.join(' ').trim();
-        if (!text) return await m.reply(`Usage: ${bot.prefix}$ <code>`);
+        if (!text) return;
 
-        const startTime = Date.now();
+        // Output only — no header, no timing, no code fence. Sent straight
+        // through the socket so the bot's font/emoji styling can't alter it.
+        const out = (t) => bot.sock.sendMessage(m.chat, { text: String(t).slice(0, 4000) }, { quoted: m._raw || m });
+
         const sock = bot.sock; // convenience alias for snippets written against `sock`
 
         let consoleOutput = '';
@@ -70,7 +75,6 @@ module.exports = {
             console.error = originalError;
             console.warn  = originalWarn;
 
-            const timeTaken = Date.now() - startTime;
             const wantsRaw  = text.includes('.raw') || text.includes('//raw');
 
             const isWaSendResponse = (r) => {
@@ -106,7 +110,7 @@ module.exports = {
 
             if (output && output.trim() && output.trim() !== 'undefined') {
                 const finalOutput = output.slice(0, 4000);
-                await m.reply(`*✆ Result* _(${timeTaken}ms)_\n\`\`\`\n${finalOutput}\n\`\`\``);
+                await out(finalOutput);
             } else if (!consoleOutput && (result === undefined || isSendResponse)) {
                 if (!isSendResponse) {
                     await bot.sock.sendMessage(m.chat, { react: { text: '✅', key: m.key } }).catch(() => {});
@@ -117,10 +121,9 @@ module.exports = {
             console.error = originalError;
             console.warn  = originalWarn;
 
-            const timeTaken = Date.now() - startTime;
             let errMsg = err.message || String(err);
             if (consoleOutput) errMsg = consoleOutput.trimEnd() + '\n' + errMsg;
-            await m.reply(`*✘ Error* _(${timeTaken}ms)_\n\`\`\`\n${errMsg.slice(0, 4000)}\n\`\`\``);
+            await out(errMsg);
         }
     }
 };

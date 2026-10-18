@@ -11,7 +11,9 @@ session/
 database/*.json
 !database/.gitkeep
 database/media-store/
-plugins/
+plugins/*
+# The bundled auto-leave plugin ships with the repo; installed plugins stay ignored.
+!plugins/autoleave.js
 
 # Secrets / environment
 .env
