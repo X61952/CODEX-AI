@@ -40,7 +40,7 @@ module.exports = {
       if (/^\d+$/.test(target) && sub === 'reject' && action === 'add' && !findLidForPhone(target)) config.pendingPhoneReject.push(target);
       saveConfig(config); return reply(`${sub} list updated.`);
     }
-    if (sub === 'status') return reply(`Anti-call: ${config.enabled ? 'ON' : 'OFF'}\nBlock mode: ${config.mode === 'block' ? 'ON' : 'OFF'}\nWhitelist: ${config.whitelist.length}\nBlacklist: ${config.blacklist.length}\nPending LID: ${config.pendingPhoneReject.length}\nSchedule: ${config.schedule.enabled ? `ON (${config.schedule.type} ${config.schedule.start} - ${config.schedule.end}, Nigeria time)` : 'OFF'}`);
+    if (sub === 'status') return reply(`Anti-call: ${config.enabled ? 'ON' : 'OFF'}\nBlock mode: ${config.mode === 'block' ? 'ON' : 'OFF'}\nWhitelist: ${config.whitelist.length}\nBlacklist: ${config.blacklist.length}\nPending LID: ${config.pendingPhoneReject.length}\nSchedule: ${config.schedule.enabled ? `ON (${config.schedule.type} ${config.schedule.start} - ${config.schedule.end}, ${require('../../lib/timezone').get()})` : 'OFF'}`);
     if (sub === 'reset') { saveConfig(defaultConfig); return reply('Anti-call reset to defaults.'); }
     return reply('Unknown anti-call option. Use the command without arguments for help.');
   },
