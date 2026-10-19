@@ -13,7 +13,7 @@
  *   .sch list                            → list schedules for this chat
  *   .sch clear                           → cancel all schedules for this chat
  *
- * Times: 1am | 6pm | 6:30pm | 23:00  (Lagos timezone)
+ * Times: 1am | 6pm | 6:30pm | 23:00  (bot timezone — .setvar TIME_ZONE=Africa/Lagos)
  */
 const { getTarget }                                        = require('../../lib/getTarget');
 const { parseTimeOfDay, humanize, addRecurring, cancelRecurring, listRecurring } = require('../../lib/mute-core');
@@ -188,4 +188,4 @@ _Times: 1am, 6pm, 6:30pm, 23:00 (Nigeria time)_`
     }
 };
 
-        
+
