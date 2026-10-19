@@ -1,5 +1,6 @@
 const fs = require('fs-extra');
 const AntiSystems = require('../../lib/antiSystems');
+const tz = require('../../lib/timezone');
 
 // Entries are written by lib/antiSystems.js#_modLog on every anti-system action.
 // This file is only the on/off/retention toggle and the log viewer.
@@ -40,7 +41,7 @@ module.exports = {
             const rows = AntiSystems.readModLog(groupId).slice(-n).reverse();
             if (!rows.length) return await m.reply('ModLog is empty for this group.');
             const out = rows.map((r) => {
-                const when = new Date(r.t).toLocaleString('en-NG', { timeZone: 'Africa/Lagos', hour12: true });
+                const when = new Date(r.t).toLocaleString('en-NG', { timeZone: tz.get(), hour12: true });
                 return `• ${when}\n  @${String(r.user).split('@')[0]} — ${r.action}\n  ${r.reason}`;
             }).join('\n');
             return await bot.sendMessage(groupId, {
