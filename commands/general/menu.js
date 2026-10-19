@@ -1,3 +1,4 @@
+const tz = require('../../lib/timezone');
 const fs    = require('fs');
 const path  = require('path');
 const axios = require('axios');
@@ -44,7 +45,7 @@ module.exports = {
 
         const time = new Date().toLocaleTimeString('en-US', {
             hour: '2-digit', minute: '2-digit', second: '2-digit',
-            hour12: true, timeZone: 'Africa/Lagos'
+            hour12: true, timeZone: tz.get()
         }).toLowerCase();
 
         const getRam = () => {
@@ -84,6 +85,7 @@ module.exports = {
         text += `║│ 𖣘 *MODE:* ${(c.mode || 'private').toUpperCase()}\n`;
         text += `║│ 𖣘 *STORAGE:* ${getRam()}\n`;
         text += `║│ 𖣘 *TIME:* ${time}\n`;
+        text += `║│ 𖣘 *TIMEZONE:* ${tz.label()}\n`;
         text += `║╰───────────────◆\n`;
         text += `╚══════════════════❒\n\n`;
         text += `${readmore}\n`;
