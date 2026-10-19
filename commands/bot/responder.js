@@ -1,3 +1,4 @@
+const tz = require('../../lib/timezone');
 module.exports = {
     name: 'cdx',
     alias: ['cdx!', 'codexai!', 'cdxai'],
@@ -112,10 +113,10 @@ module.exports = {
 
             const randomReply = responders[Math.floor(Math.random() * responders.length)];
 
-            // Lagos Time
+            // Bot timezone
             const timeStr = new Date().toLocaleTimeString('en-US', {
                 hour: 'numeric', minute: '2-digit', second: '2-digit',
-                hour12: true, timeZone: 'Africa/Lagos'
+                hour12: true, timeZone: tz.get()
             }).toLowerCase();
 
             // ASSEMBLY (NO BACKTICKS)
