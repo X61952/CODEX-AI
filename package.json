@@ -4,7 +4,7 @@
     "description": "CODEX-AI V3.0 WhatsApp Bot - Advanced Multi-Feature Bot",
     "main": "index.js",
     "scripts": {
-        "start": "FORCE_COLOR=1 npx -y pm2 start index.js --attach --name CODEX-V2 -- --color",
+        "start": "FORCE_COLOR=1 npx -y pm2 start index.js --attach --name CODEX-V3 -- --color",
         "start:plain": "node index.js",
         "dev": "nodemon index.js",
         "test": "node tests/antiSystems.perf.test.js && node tests/healthEndpoints.test.js && node tests/connection.test.js && node tests/sessionCleanup.test.js && node tests/processLock.test.js && node tests/pluginManager.test.js",
