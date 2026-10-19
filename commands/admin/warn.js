@@ -1,3 +1,4 @@
+const tz = require('../../lib/timezone');
 const fs = require('fs-extra');
 const { getTarget } = require('../../lib/getTarget');
 const { getQuoted } = require('../../lib/getQuoted');
@@ -14,7 +15,7 @@ function saveDB(db) {
 }
 function nigerianTime() {
     return new Date().toLocaleString('en-NG', {
-        timeZone: 'Africa/Lagos',
+        timeZone: tz.get(),
         day: '2-digit', month: 'short', year: 'numeric',
         hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
     });
