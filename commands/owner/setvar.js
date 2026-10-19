@@ -1,5 +1,6 @@
 const fs   = require('fs-extra');
 const path = require('path');
+const tz   = require('../../lib/timezone');
 // Anchored to the project root (not process.cwd()) so persistent data
 // lands in the same place regardless of the directory the process was
 // launched from. CODEX_PROJECT_ROOT is a test-only override; production
@@ -26,6 +27,7 @@ module.exports = {
             `• ${bot.prefix}setvar PREFIX=.\n` +
             `• ${bot.prefix}setvar MODE=public\n` +
             `• ${bot.prefix}setvar MENU_IMAGE=https://example.com/menu.jpg\n` +
+            `• ${bot.prefix}setvar TIME_ZONE=Africa/Lagos\n` +
             `• ${bot.prefix}setvar OWNER=2349064626405`
         );
 
@@ -41,6 +43,18 @@ module.exports = {
         }
 
         if (!key || value === '') return await m.reply('Usage: `.setvar KEY=value`');
+
+        // TIME_ZONE drives every schedule, cron job, timer-of-day and displayed
+        // time (see lib/timezone.js). Validate first; store the canonical name
+        // ("africa/lagos" -> "Africa/Lagos") and apply it live.
+        if (key === 'TIMEZONE' || key === 'TZ') key = 'TIME_ZONE';
+        if (key === 'TIME_ZONE') {
+            const zone = tz.set(value);
+            if (!zone) return await m.reply(
+                `✘ *${value}* is not a valid timezone.\n\nUse a name like:\n` +
+                `• ${bot.prefix}setvar TIME_ZONE=Africa/Lagos\n• ${bot.prefix}setvar TIME_ZONE=Europe/London\n• ${bot.prefix}setvar TIME_ZONE=America/New_York\n• ${bot.prefix}setvar TIME_ZONE=Asia/Dubai`);
+            value = zone;
+        }
 
         // Save to database/variables.json (persistent)
         const vars = readVars();
@@ -111,6 +125,11 @@ module.exports = {
             }
         } catch {}
 
-        return await m.reply(`✪ *${key}* = ${value}\n\n_Saved. Takes effect immediately._`);
+        if (key === 'TIME_ZONE') {
+            const now = new Date().toLocaleString('en-US', { timeZone: value, dateStyle: 'medium', timeStyle: 'medium' });
+            return await m.reply(`✪ *TIME_ZONE* = ${tz.label(value)}\n\n_Time now: ${now}_\n_Schedules, cron jobs and every time the bot shows now use this zone. Saved._`);
+        }
+
+        return await m.reply(` *${key}* = ${value}\n\n_configuration updated ✓._`);
     }
 };
