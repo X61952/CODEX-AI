@@ -4,7 +4,8 @@
     "description": "CODEX-AI V3.0 WhatsApp Bot - Advanced Multi-Feature Bot",
     "main": "index.js",
     "scripts": {
-        "start": "node index.js",
+        "start": "FORCE_COLOR=1 npx -y pm2 start index.js --attach --name CODEX-V2 -- --color",
+        "start:plain": "node index.js",
         "dev": "nodemon index.js",
         "test": "node tests/antiSystems.perf.test.js && node tests/healthEndpoints.test.js && node tests/connection.test.js && node tests/sessionCleanup.test.js && node tests/processLock.test.js && node tests/pluginManager.test.js",
         "bench": "node tests/bench/antiSystems.bench.js",
@@ -70,7 +71,6 @@
         "pdfkit": "^0.17.2",
         "pino": "^8.17.2",
         "play-dl": "^1.9.7",
-        "playwright": "^1.64.1",
         "qrcode": "^1.5.4",
         "qrcode-terminal": "^0.12.0",
         "ruhend-scraper": "^9.0.5",
