@@ -3,7 +3,7 @@
  */
 const os = require('os');
 
-const TZ = 'Africa/Lagos'; // same zone the rest of the bot uses
+const tz = require('../../lib/timezone'); // bot timezone (.setvar TIME_ZONE=...)
 
 // 2d 3h 10m 1s — units that are zero are left out (30d 10m 1s)
 function fmtUptime(totalSeconds) {
@@ -27,7 +27,7 @@ module.exports = {
     async execute(bot, m) {
         const uptime = fmtUptime(process.uptime());
         const memory = (process.memoryUsage().rss / 1024 / 1024).toFixed(2);
-        const time   = new Date().toLocaleString('en-US', { timeZone: TZ });
+        const time   = new Date().toLocaleString('en-US', { timeZone: tz.get() });
 
         return m.reply(
 `*CODEX RUNTIME STATUS*
