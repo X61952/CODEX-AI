@@ -27,7 +27,11 @@ module.exports = {
 
         // Output only — no header, no timing, no code fence. Sent straight
         // through the socket so the bot's font/emoji styling can't alter it.
-        const out = (t) => bot.sock.sendMessage(m.chat, { text: String(t).slice(0, 4000) }, { quoted: m._raw || m });
+        const out = async (t) => {
+            const text = String(t).slice(0, 4000);
+            try { return await bot.sock.sendMessage(m.chat, { text }, { quoted: m._raw }); }
+            catch { return await m.reply(text); }   // same path every other command uses
+        };
 
         const sock = bot.sock; // convenience alias for snippets written against `sock`
 
