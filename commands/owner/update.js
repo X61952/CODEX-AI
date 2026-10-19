@@ -308,6 +308,8 @@ function shortList(items, limit = 8) {
 }
 
 module.exports = {
+  // Used by lib/startupUpdate.js (first-deploy auto update / "Bot is up to date").
+  _helpers: { getCfg, checkUpdates, applyUpdate, VERSION_FILE },
   name: "update",
   aliases: ["upd", "upgrade"],
   category: "owner",
@@ -408,3 +410,4 @@ module.exports = {
     }
   },
 };
+      
