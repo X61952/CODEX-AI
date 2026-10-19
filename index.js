@@ -10,22 +10,45 @@
  * The real application lives in app.js — this file is only the loader.
  */
 // ── Quiet panel ─────────────────────────────────────────────────────────────
-// The console shows ONLY:
-//   1. the purple "CODEX V3 DEPLOYED ON PTERODACTYL (PANEL)" banner, printed
-//      the moment the process starts,
-//   2. the "| CODEX V3 | connected" line,
-//   3. the normal Baileys/libsignal pre-key and session output (the
-//      "Closing open session in favor of incoming prekey bundle" lines and the
-//      session chains printed with them),
-//   4. errors that stop the bot from starting at all (bad config.json,
-//      session lock, boot failure), so a dead bot is never silent.
-// Everything else — temp cleaner, health server, connection logs, debug
-// output, library chatter — keeps running but prints nothing.
+// The console shows ONLY the start-up story, in this order:
+//   Running in USER MODE / Starting CODEX..
+//   Update completed successfully + commits (first deploy)  |  Bot is up to date (restart)
+//   session lines (✓ Session ID unchanged ... / ⚠ ... fetching from server...)
+//   Using WA v…, isLatest: …  →  Connecting to WhatsApp...  →  Connection established
+//   Installing Commands/Assets / Environment variables reloaded / Installed N commands
+//   Successfully deployed on pterodactyl (panel)
+// plus the normal Baileys pre-key / session output, the login + pairing prompts
+// (so a first-time pairing can be completed) and errors that stop the bot from
+// starting at all. Everything else — temp cleaner, health server, connection
+// logs, mute-timer restoration, debug output — keeps running but prints nothing.
 // Set CODEX_DEBUG=1 to turn the filter off and see everything again.
 (function _installConsoleFilter() {
     if (process.env.CODEX_DEBUG === '1') return;
     const ANSI = /\u001b\[[0-9;]*m/g;
-    const SHOW = [/^CODEX V3 DEPLOYED ON PTERODACTYL/, /^\|\s*CODEX V3\s*\|/i];
+    const SHOW = [
+        // start-up story
+        /^Running in USER MODE/, /^Starting CODEX\.\./,
+        /^Update completed successfully/, /^\d+\. \[[0-9a-f]+\]/, /^Bot is up to date/,
+        /^Update available/, /^Update failed/, /^Update check skipped/, /^\.$/,
+        /Session ID changed or missing local creds/, /Credentials fetched and cached successfully/,
+        /Session ID unchanged, using local credentials/, /^\W*Using local credentials/,
+        /^Using WA v/, /^Connecting to WhatsApp\.\.\./, /^Connection established/,
+        /^Installing Commands\/Assets/, /^Environment variables reloaded/, /^Installed \d+ commands/,
+        /^Successfully deployed on pterodactyl \(panel\)/,
+        /^\d+ commands failed to load/i,
+        // login / session restore / pairing (lib/connection.js) — the prompts must
+        // stay visible or a first-time pairing on the panel can't be completed
+        /^No saved credentials found/i, /^1 session id/i, /^2 phone number/i,
+        /^Enter your (session id|phone number)/i,
+        /Downloading session '/i, /No session files found/i, /Raw server response/i,
+        /returned no usable files/i, /Restored \d+ session file/i,
+        /Session server didn't respond/i, /Failed to fetch session/i,
+        /Session ID saved/i, /Could not save session ID/i,
+        /^session id could not be verified/i, /Invalid phone number/i,
+        /^Your pairing code is/i, /^Enter it on your phone to link/i,
+        /^Pairing code (request )?failed/i,
+        /^WhatsApp logged out; clearing/i, /^Could not clear session dir/i,
+    ];
     const FATAL = [/^❌/, /^\s+- /, /^Edit config\.json/, /^Boot attempt/, /^Fatal:/];
     const SESSION = /(prekey bundle|closing (open )?session|removing old closed session|opening session|migrating session|session already (open|closed))/i;
     for (const method of ['log', 'info', 'warn', 'error', 'debug']) {
@@ -42,8 +65,9 @@
     }
 })();
 
-// Purple banner, immediately at process start (before anything else loads).
-console.log('\u001b[35mCODEX V3 DEPLOYED ON PTERODACTYL (PANEL)\u001b[0m');
+// First lines of the start-up story (the pm2 banner and table are printed by pm2 itself).
+console.log('Running in USER MODE');
+console.log('\u001b[34mStarting CODEX..\u001b[0m');
 
 // Centralized temp directory MUST be set up before any library that reads
 // TMPDIR/TMP/TEMP at load time (ffmpeg, canvas, Baileys media handling).
