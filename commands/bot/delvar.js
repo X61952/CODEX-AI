@@ -21,6 +21,11 @@ module.exports = {
 
         delete db[key];
         fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+        // Removing TIME_ZONE puts the bot back on the default zone straight away.
+        if (key.toUpperCase() === 'TIME_ZONE') {
+            const tz = require('../../lib/timezone');
+            tz.set(tz.normalize(process.env.TIME_ZONE) || tz.DEFAULT_TZ);
+        }
         await m.reply(`Variable "${key}" deleted.`);
     }
 };
