@@ -5,7 +5,8 @@
  *   Bot is NOT an admin    → can only remove its OWN messages: it deletes the
  *                            replied-to message if the bot sent it, and leaves
  *                            your .del message alone (it can't delete yours).
- *                            If the replied-to message isn't the bot's, it says so.
+ *                            If the replied-to message isn't the bot's, it says so
+ *                            (in a DM it stays silent instead).
  */
 const gt = require('../../lib/groupTools');
 
@@ -28,9 +29,22 @@ module.exports = {
 
         // Was the replied-to message sent by the bot itself?
         const author = q.key.participant || '';
-        const ownMessage = !!q.key.fromMe || (!!author && gt.isBot(bot, [author]));
+        let ownMessage = !!q.key.fromMe || (!!author && gt.isBot(bot, [author]));
+
+        // In a DM there are only two people: the bot and you. A bot @lid/phone
+        // mismatch can make the bot's own message look foreign, so if the quoted
+        // author is NOT you (sender / chat), it must be the bot's message.
+        if (!ownMessage && !m.isGroup) {
+            const _d = j => String(j || '').replace(/:[0-9]+@/, '@').split('@')[0].replace(/[^0-9]/g, '');
+            const mine = [m.sender, m._participantRaw, m.chat, m.key?.remoteJid, m.key?.remoteJidAlt, m.key?.participant]
+                .filter(Boolean).map(_d).filter(Boolean);
+            const authorD = _d(author);
+            ownMessage = !!authorD && !mine.includes(authorD);
+        }
 
         if (!botIsAdmin && !ownMessage) {
+            // DM: replying to YOUR message with .del stays silent (the bot can't delete it).
+            if (!m.isGroup) return;
             return m.reply("❌ I'm not an admin here, so I can only delete my own messages.");
         }
 
