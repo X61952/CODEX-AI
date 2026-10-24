@@ -1,5 +1,3 @@
-const { resolvePhoneJid } = require('../../lib/joinRequests');
-
 module.exports = {
     name: 'tagall',
     aliases: ['tag', 'everyone'],
@@ -21,23 +19,21 @@ module.exports = {
             }
 
             const metadata = await bot.sock.groupMetadata(m.chat);
-            const rawMembers = (metadata.participants || [])
-                .map(participant => participant.id || participant.jid || participant.phoneNumber)
-                .filter(Boolean);
-            const members = [];
-
-            for (const rawMember of rawMembers) {
-                const resolved = await resolvePhoneJid(bot, rawMember);
-                if (resolved && !members.includes(resolved)) members.push(resolved);
-            }
-
-            if (!members.length) return m.reply('❌ I could not find any group members to tag.');
 
             const messageArgs = String(args[0] || '').toLowerCase() === 'all'
                 ? args.slice(1)
                 : args;
-            const message = messageArgs.join(' ').trim() || 'Attention everyone';
-            await m.reply(message, { mentions: members });
+            const message = messageArgs.join(' ').trim();
+            const text = ['@all', message].filter(Boolean).join(' ');
+            await bot.sock.sendMessage(m.chat, {
+                text,
+                contextInfo: {
+                    groupMentions: [{
+                        groupJid: m.chat,
+                        groupSubject: metadata.subject || '',
+                    }],
+                },
+            });
         } catch (error) {
             await m.reply(`❌ Failed to tag everyone: ${error.message}`);
         }
