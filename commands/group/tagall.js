@@ -37,8 +37,7 @@ module.exports = {
                 ? args.slice(1)
                 : args;
             const message = messageArgs.join(' ').trim() || 'Attention everyone';
-            const tags = members.map((jid, index) => `${index + 1}. @${String(jid).split('@')[0]}`).join('\n');
-            await m.reply(`${message}\n\n${tags}`, { mentions: members });
+            await m.reply(message, { mentions: members });
         } catch (error) {
             await m.reply(`❌ Failed to tag everyone: ${error.message}`);
         }

@@ -1,67 +1,44 @@
 'use strict';
- 
-const { downloadMediaMessage } = require('../../lib/baileys');
- 
+
+const { downloadMediaBuffer } = require('../../lib/mediaAnalyzer');
+const smartAI = require('../../lib/smartAI');
+
 module.exports = {
-    commands: ['transcribe', 'voicetotext', 'vtt', 'speech'],
+    name: 'transcribe',
+    aliases: ['voicetotext', 'vtt', 'speech'],
     category: 'group',
-    description: 'Transcribe voice messages to text (reply to a voice note)',
-    usage: '.transcribe (reply to a voice message)',
-    permission: 'public',
-    group: true,
-    private: true,
- 
-    run: async (sock, message, args, ctx) => {
-        const { jid, contextInfo } = ctx;
-        const quoted = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
- 
-        if (!quoted) {
-            return sock.sendMessage(jid, {
-                text: 'ðŸŽ¤ *Voice Transcription*\n\nReply to a voice message with \`.transcribe\` to convert it to text.\n\n_Note: Uses speech recognition to approximate the content._',
-                contextInfo
-            }, { quoted: message });
+    description: 'Transcribe a replied-to voice message or audio file',
+    usage: '.transcribe (reply to audio)',
+
+    async execute(bot, message) {
+        const contextInfo = message?.msg?.contextInfo
+            || message?.message?.extendedTextMessage?.contextInfo
+            || {};
+        const quoted = contextInfo.quotedMessage;
+        if (!quoted) return message.reply('Reply to a voice message or audio file with .transcribe.');
+
+        const audio = quoted.audioMessage;
+        if (!audio) return message.reply('Please reply to a voice message or audio file.');
+
+        const provider = String(bot.config?.AI_PROVIDER || 'groq').toLowerCase();
+        const apiKey = bot.config?.AI_API_KEY
+            || (provider === 'openai' ? process.env.OPENAI_API_KEY : process.env.GROQ_API_KEY);
+        if (!apiKey) {
+            return message.reply(`Configure an AI key first with .aiapi ${provider} <key>.`);
         }
- 
-        const isAudio = quoted.audioMessage;
-        if (!isAudio) {
-            return sock.sendMessage(jid, {
-                text: 'âŒ Please reply to a *voice message* or audio file.',
-                contextInfo
-            }, { quoted: message });
-        }
- 
-        await sock.sendMessage(jid, { text: 'ðŸŽ¤ Transcribing voice message...', contextInfo }, { quoted: message });
- 
+
+        await message.reply('Transcribing audio...');
+
         try {
-            const quotedMsg = {
-                key: {
-                    remoteJid: jid,
-                    id: message.message?.extendedTextMessage?.contextInfo?.stanzaId,
-                    fromMe: false,
-                    participant: message.message?.extendedTextMessage?.contextInfo?.participant
-                },
-                message: quoted
-            };
- 
-            const buffer = await downloadMediaMessage(quotedMsg, 'buffer', {});
-            const durationSec = isAudio.seconds || 0;
-            const fileSize = buffer.length;
- 
-            const estimatedWords = Math.max(10, Math.round(durationSec * 2.5));
-            const durationStr = durationSec > 60
-                ? `${Math.floor(durationSec / 60)}m ${durationSec % 60}s`
-                : `${durationSec}s`;
- 
-            await sock.sendMessage(jid, {
-                text: `ðŸŽ¤ *Voice Message Info*\n\nâ±ï¸ *Duration:* ${durationStr}\nðŸ“¦ *Size:* ${(fileSize / 1024).toFixed(1)} KB\nðŸ’¬ *Est. words:* ~${estimatedWords}\n\n_Full speech-to-text requires a cloud STT API (Google/Whisper). Set up SPEECH_API_KEY in config for full transcription._\n\nðŸ’¡ *Tip:* You can use \`.tts <text>\` to convert text back to voice!`,
-                contextInfo
-            }, { quoted: message });
- 
-        } catch (err) {
-            await sock.sendMessage(jid, {
-                text: 'âŒ Failed to process voice message. Make sure you replied to a voice note.',
-                contextInfo
-            }, { quoted: message });
+            const buffer = await downloadMediaBuffer(audio, 'audio');
+            const transcript = await smartAI.transcribeAudio(bot, buffer, audio.mimetype || 'audio/ogg');
+            if (!transcript) {
+                return message.reply('I could not transcribe that audio. Check the API key, audio format, and provider limits.');
+            }
+            return message.reply(`*Transcript*\n${transcript}`);
+        } catch (error) {
+            console.error('[transcribe]', error.message);
+            return message.reply('Transcription failed. Please try again with a shorter or clearer audio message.');
         }
-    }
+    },
 };
