@@ -4,8 +4,8 @@ const fs = require('fs-extra');
 // enforcement: lib/antiSystems.js#checkBug. The action is always BLOCK:
 // the offending message is deleted (groups), the sender is blocked on
 // WhatsApp, and removed from the group when the bot is an admin.
-// ON by default everywhere (groups and DMs); .antibug off turns it off for
-// one group, .antibug global off (owner) turns off the default.
+// OFF by default, and the default mode is DM. .antibug on in a group turns it on
+// for that group; .antibug global on (owner) turns it on for DMs.
 module.exports = {
     name: 'antibug',
     aliases: ['abug', 'antycrash', 'anticrash'],
@@ -25,9 +25,9 @@ module.exports = {
 
         let db = {};
         try { db = JSON.parse(fs.readFileSync(dbPath, 'utf8')); } catch { db = {}; }
-        const mode = ['dm', 'group'].includes(db._mode) ? db._mode : 'both';
-        const globalOn = db._global ? db._global.enabled !== false : true;
-        const groupOn = m.isGroup && db[m.chat] && typeof db[m.chat].enabled === 'boolean' ? db[m.chat].enabled : globalOn;
+        const mode = ['dm', 'group', 'both'].includes(db._mode) ? db._mode : 'dm';
+        const globalOn = !!(db._global && db._global.enabled === true);
+        const groupOn = m.isGroup && db[m.chat] && typeof db[m.chat].enabled === 'boolean' ? db[m.chat].enabled : (m.isGroup ? false : globalOn);
         const save = () => { fs.ensureDirSync('./database'); fs.writeFileSync(dbPath, JSON.stringify(db, null, 2)); };
 
         if (!sub || sub === 'status') {
