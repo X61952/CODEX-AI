@@ -24,7 +24,7 @@ module.exports = {
             (metadata.participants || []).forEach((p, i) => {
                 const id = p.id || p.jid || p.phoneNumber;
                 if (id) text += `
-⎔  ${i + 1}. @${String(id).split('@')[0]}\n`;
+⎔ ${i + 1}. @${String(id).split('@')[0]}\n`;
             });
 
             await bot.sock.sendMessage(m.chat, { text, mentions: [...new Set([m.sender, ...ids])] });
