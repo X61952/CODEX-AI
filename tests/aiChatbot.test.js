@@ -486,7 +486,7 @@ const texts = (bot) => bot.sent.map((s) => s.c.text).filter(Boolean);
         assert.ok(/You are Gemini/.test(fb.body.messages[0].content), 'backup route answers in the command\'s own style');
         const ownerOut = []; const m2 = mkMsg({ sender: 'owner@s.whatsapp.net' }); m2.reply = async (t) => ownerOut.push(t);
         await cmd.execute(mkBot(), m2, ['hi']);
-        assert.ok(/owner note/.test(ownerOut[0]), 'owner sees the note');
+        assert.ok(!/owner note|reachable/.test(ownerOut[0]), 'nobody sees backup-route notes, not even the owner');
         assert.ok(!cmd.reactions, 'no custom reaction — the bot-wide cmd-react setting decides');
     });
     await check('.gptoss (Groq-native) answers; usage text when empty', async () => {
@@ -571,4 +571,4 @@ const texts = (bot) => bot.sent.map((s) => s.c.text).filter(Boolean);
     console.log(`\n${passed} checks passed${process.exitCode ? ' (with failures)' : ''}`);
     fs.rmSync(root, { recursive: true, force: true });
 })();
-            
+                
