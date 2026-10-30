@@ -9,6 +9,17 @@
  *
  * The real application lives in app.js — this file is only the loader.
  */
+// ── pm2 look across restarts ─────────────────────────────────────────────────
+// If a restart left the bot running outside pm2 on the panel, start it again through
+// pm2 (banner + table + "0|CODEX-V3  |" prefix); otherwise make sure the prefix is
+// still printed. Under pm2 this does nothing. See lib/pm2Boot.js.
+const _pm2Boot = require('./lib/pm2Boot');
+if (_pm2Boot.shouldRelaunch()) {
+    _pm2Boot.relaunch(__filename);
+    return;
+}
+_pm2Boot.installPrefix();
+
 // ── Quiet panel ─────────────────────────────────────────────────────────────
 // The console shows ONLY the start-up story, in this order:
 //   Running in USER MODE / Starting CODEX..
