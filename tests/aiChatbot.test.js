@@ -27,6 +27,11 @@ const sharp = require('sharp');
 const engine = require('../lib/ai/engine');
 const { MODELS } = require('../lib/ai/models');
 const store = require('../lib/ai/store');
+const keysMod = require('../lib/ai/keys');
+const BUILTIN = { ...keysMod.DEFAULT_KEYS };
+const noBuiltin = () => { for (const k of Object.keys(keysMod.DEFAULT_KEYS)) keysMod.DEFAULT_KEYS[k] = ''; };
+const restoreBuiltin = () => Object.assign(keysMod.DEFAULT_KEYS, BUILTIN);
+noBuiltin(); // tests control keys explicitly via bot.config
 const persona = require('../lib/ai/persona');
 const media = require('../lib/ai/media');
 const pending = require('../lib/ai/pending');
@@ -112,8 +117,7 @@ const texts = (bot) => bot.sent.map((s) => s.c.text).filter(Boolean);
             const cmd = require(`../commands/ai/${k}.js`);
             assert.strictEqual(cmd.name, k); assert.strictEqual(cmd.category, 'ai'); assert.ok(cmd.execute);
         }
-        const commandFiles = fs.readdirSync(path.join(__dirname, '../commands/ai')).filter((f) => f.endsWith('.js') && f !== 'codex.js');
-        assert.strictEqual(commandFiles.length, 12);
+        assert.strictEqual(fs.readdirSync(path.join(__dirname, '../commands/ai')).filter((f) => f.endsWith('.js')).length, 12);
         for (const k of ['gemini', 'gptmini', 'openai', 'gpt5plus']) assert.ok(MODELS[k]);
     });
     await check('no alias collides inside the registry', () => {
@@ -148,11 +152,16 @@ const texts = (bot) => bot.sent.map((s) => s.c.text).filter(Boolean);
         assert.ok(r.ok && r.degraded && r.provider === 'groq');
     });
     await check('chat: no keys → clear error, no crash', async () => {
+        noBuiltin();
         const bot = mkBot({ GROQ_API_KEY: '', OPENROUTER_API_KEY: '' });
         const saved = { g: process.env.GROQ_API_KEY, o: process.env.OPENROUTER_API_KEY };
         delete process.env.GROQ_API_KEY; delete process.env.OPENROUTER_API_KEY;
         const r = await engine.chat({ bot, route: engine.routeFor(bot, 'gemini'), messages: [{ role: 'user', content: 'hi' }] });
         assert.ok(!r.ok && /key/i.test(r.error));
+        restoreBuiltin();
+        const r2 = await engine.chat({ bot, route: engine.routeFor(bot, 'llama'), messages: [{ role: 'user', content: 'hi' }] });
+        assert.ok(r2.ok, 'built-in keys make it work with an empty config');
+        noBuiltin();
         Object.assign(process.env, Object.fromEntries(Object.entries({ GROQ_API_KEY: saved.g, OPENROUTER_API_KEY: saved.o }).filter(([, v]) => v)));
     });
     await check('transcribe: multipart upload to Groq whisper', async () => {
@@ -495,8 +504,13 @@ const texts = (bot) => bot.sent.map((s) => s.c.text).filter(Boolean);
         const m = mkMsg({ sender: 'nokey@s.whatsapp.net' }); m.reply = async (t) => out.push(t);
         const saved = { g: process.env.GROQ_API_KEY, o: process.env.OPENROUTER_API_KEY };
         delete process.env.GROQ_API_KEY; delete process.env.OPENROUTER_API_KEY;
+        noBuiltin();
         await cmd.execute(mkBot({ GROQ_API_KEY: '', OPENROUTER_API_KEY: '' }), m, ['hi']);
+        restoreBuiltin();
         assert.ok(/GROQ_API_KEY/.test(out[0]) && /aikeys/.test(out[0]));
+        await cmd.execute(mkBot({ GROQ_API_KEY: '', OPENROUTER_API_KEY: '' }), m, ['hi']);
+        assert.ok(/Claude/.test(out[1]), 'with the built-in keys it works with an empty config');
+        noBuiltin();
     });
     await check('toWhatsApp + chunk', () => {
         const { toWhatsApp, chunk } = require('../lib/ai/makeCommand');
@@ -557,3 +571,4 @@ const texts = (bot) => bot.sent.map((s) => s.c.text).filter(Boolean);
     console.log(`\n${passed} checks passed${process.exitCode ? ' (with failures)' : ''}`);
     fs.rmSync(root, { recursive: true, force: true });
 })();
+            
