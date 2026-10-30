@@ -14,6 +14,7 @@ database/media-store/
 plugins/*
 # The bundled auto-leave plugin ships with the repo; installed plugins stay ignored.
 !plugins/autoleave.js
+!plugins/qr-tools.js
 
 # Secrets / environment
 .env

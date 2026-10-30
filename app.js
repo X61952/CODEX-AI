@@ -169,9 +169,6 @@ process.on("unhandledRejection", (reason, promise) => {
   "./database/autoreact.json",
   "./database/mention_config.json",
   "./database/antiedit.json",
-  "./database/chatbotgroup.json",
-  "./database/chatbotdm.json",
-  "./database/chatbotglobal.json",
   "./database/groupEvents.json",
   "./database/muteSchedules.json",
   "./database/recurringSchedules.json",
@@ -214,28 +211,34 @@ process.on("unhandledRejection", (reason, promise) => {
         null,
         2,
       ),
-      "./database/chatbotdm.json": JSON.stringify(
-        { enabled: false, voice: false },
-        null,
-        2,
-      ),
-      "./database/chatbotglobal.json": JSON.stringify(
-        {
-          allGroupsEnabled: false,
-          character: "machine",
-          train:
-            "You believe Messi is the greatest footballer of all time, and Ronaldo is your rival in football debates — you playfully criticize him. ONLY bring this up if someone else brings up football, Messi, or Ronaldo first — never volunteer it unprompted in unrelated conversation.",
-          personality: null,
-          emojiPool: [],
-          emojiReactEnabled: false,
-        },
-        null,
-        2,
-      ),
     };
     fs.writeFileSync(db, defaults[db] || JSON.stringify({}, null, 2));
   }
 });
+
+// ── Legacy AI data (pre-rewrite) ────────────────────────────────────────────
+// The old chatbot/training databases and the old single AI key are deleted at
+// boot so none of the previous AI training or settings survive. The new
+// chatbot stores its settings in database/aichatbot.json (lib/ai/store.js).
+for (const legacy of ["chatbotgroup", "chatbotdm", "chatbotglobal"]) {
+  try {
+    fs.unlinkSync(`./database/${legacy}.json`);
+  } catch {}
+}
+try {
+  const _varsPath = "./database/variables.json";
+  if (fs.existsSync(_varsPath)) {
+    const _vars = JSON.parse(fs.readFileSync(_varsPath, "utf8"));
+    let _dirty = false;
+    for (const k of ["AI_PROVIDER", "AI_API_KEY"]) {
+      if (k in _vars) {
+        delete _vars[k];
+        _dirty = true;
+      }
+    }
+    if (_dirty) fs.writeFileSync(_varsPath, JSON.stringify(_vars, null, 2));
+  }
+} catch {}
 
 // ── Buffer-safe (de)serialization for the JSON message cache ───────────────
 // Media submessages carry Buffer fields (mediaKey, fileEncSha256, etc.) that
@@ -1310,7 +1313,6 @@ ${newText || "(could not read new text)"}
         content.text = applyFont(content.text, fontNum);
       if (typeof content.caption === "string" && fontNum > 0)
         content.caption = applyFont(content.caption, fontNum);
-      // Apply language translation to text (async — uses GPT API if key is set)
 
       const sent = await this.sock.sendMessage(jid, content, options);
       if (autoReadAllows(this.config, jid) && sent?.key)

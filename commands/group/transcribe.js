@@ -1,44 +1,44 @@
 'use strict';
 
-const { downloadMediaBuffer } = require('../../lib/mediaAnalyzer');
-const smartAI = require('../../lib/smartAI');
+const engine = require('../../lib/ai/engine');
+const media = require('../../lib/ai/media');
+const { getContentType } = require('../../lib/baileys');
 
 module.exports = {
     name: 'transcribe',
     aliases: ['voicetotext', 'vtt', 'speech'],
     category: 'group',
-    description: 'Transcribe a replied-to voice message or audio file',
-    usage: '.transcribe (reply to audio)',
+    description: 'Transcribe a replied-to voice message, audio or video (Groq Whisper)',
+    usage: '.transcribe (reply to a voice note / audio / video)',
 
     async execute(bot, message) {
-        const contextInfo = message?.msg?.contextInfo
-            || message?.message?.extendedTextMessage?.contextInfo
-            || {};
-        const quoted = contextInfo.quotedMessage;
-        if (!quoted) return message.reply('Reply to a voice message or audio file with .transcribe.');
+        const quotedMsg = (message?.msg?.contextInfo || message?.message?.extendedTextMessage?.contextInfo || {}).quotedMessage;
+        if (!quotedMsg) return message.reply('Reply to a voice message, audio or video with .transcribe');
 
-        const audio = quoted.audioMessage;
-        if (!audio) return message.reply('Please reply to a voice message or audio file.');
-
-        const provider = String(bot.config?.AI_PROVIDER || 'groq').toLowerCase();
-        const apiKey = bot.config?.AI_API_KEY
-            || (provider === 'openai' ? process.env.OPENAI_API_KEY : process.env.GROQ_API_KEY);
-        if (!apiKey) {
-            return message.reply(`Configure an AI key first with .aiapi ${provider} <key>.`);
+        const type = getContentType(quotedMsg);
+        const content = quotedMsg[type];
+        if (!['audioMessage', 'videoMessage'].includes(type)) {
+            return message.reply('Please reply to a voice message, audio file or video.');
+        }
+        if (!engine.getKey(bot, 'groq') && !engine.getKey(bot, 'openai')) {
+            return message.reply('⚠️ Voice transcription needs GROQ_API_KEY. Owner: check .aikeys');
         }
 
-        await message.reply('Transcribing audio...');
-
+        await message.reply('🎧 Transcribing…');
         try {
-            const buffer = await downloadMediaBuffer(audio, 'audio');
-            const transcript = await smartAI.transcribeAudio(bot, buffer, audio.mimetype || 'audio/ogg');
-            if (!transcript) {
-                return message.reply('I could not transcribe that audio. Check the API key, audio format, and provider limits.');
+            let buffer = await media.download(content, type === 'audioMessage' ? 'audio' : 'video');
+            let mimetype = content.mimetype || 'audio/ogg';
+            if (type === 'videoMessage') {
+                buffer = await media.audioFromVideo(buffer);
+                mimetype = 'audio/mpeg';
+                if (!buffer) return message.reply("That video doesn't seem to have any sound.");
             }
-            return message.reply(`*Transcript*\n${transcript}`);
+            const r = await engine.transcribe({ bot, buffer, mimetype, toMp3: media.toMp3 });
+            if (!r.ok) return message.reply("❌ I couldn't transcribe that. Try a clearer or shorter audio.");
+            return message.reply(`📝 *Transcript*\n\n${r.text}`);
         } catch (error) {
             console.error('[transcribe]', error.message);
-            return message.reply('Transcription failed. Please try again with a shorter or clearer audio message.');
+            return message.reply('❌ Transcription failed. Please try again with a shorter or clearer audio message.');
         }
     },
 };

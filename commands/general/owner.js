@@ -1,6 +1,6 @@
 module.exports = {
     name: 'owner',
-    aliases: ['creator', 'dev'],
+    aliases: ['creator'],
     category: 'general',
     reactions: { start: '🔐' },
     description: 'Show bot owner contact as vCard',

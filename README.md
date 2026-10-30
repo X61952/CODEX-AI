@@ -250,6 +250,10 @@ The following environment variables enable repository-related commands when conf
 |---|---|
 | `GITHUB_TOKEN` | GitHub personal access token for authorised repository operations. |
 | `GITHUB_USERNAME` | GitHub username used for repository lookups. |
+| `GROQ_API_KEY` | Groq key (starts with `gsk_`) — powers the chatbot, voice notes, image understanding, `.llama`, `.gptoss`. |
+| `OPENROUTER_API_KEY` | OpenRouter key — powers `.gemini`, `.gptmini`, `.openai`, `.gpt5plus`, `.claude`, `.deepseek`, `.grok`, `.qwen`, `.mistral`, `.kimi`. |
+
+You can also set any of these from WhatsApp with `.setvar GROQ_API_KEY=...` and check them with `.aikeys test`.
 
 Store secrets in your host's environment or a protected configuration file. Never commit credentials to source control.
 

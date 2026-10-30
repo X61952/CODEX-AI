@@ -118,6 +118,8 @@ module.exports = {
                 try { bot.prefix = value; } catch {}
             }
             if (key === 'MODE') bot.config.mode = value;
+            // AI keys / model overrides take effect immediately (read from bot.config by lib/ai/engine.js)
+            if (/^(GROQ_API_KEY|OPENROUTER_API_KEY|RAPIDAPI_KEY|REMOVEBG_API|AI_MODEL_[A-Z0-9_]+)$/.test(key)) bot.config[key] = value;
             if (key === 'BOT_NAME') {
                 if (!bot.config.settings) bot.config.settings = {};
                 bot.config.settings.title = value;
