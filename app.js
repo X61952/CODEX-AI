@@ -1030,7 +1030,7 @@ ${newText || "(could not read new text)"}
     const CHANNEL_LINK =
       "https://whatsapp.com/channel/0029Vb6sMEy96H4VI2w3I50F";
     const GROUP_LINK =
-      "https://chat.whatsapp.com/D4h54lfB8neBvOzXMW19Tm?s=cl&p=a&mlu=4&ilr=4";
+      "https://chat.whatsapp.com/L5gckU4nNCq3bTH45tLB37?s=cl&p=a&mlu=4&ilr=4&iam=2";
     const prefix = c.prefix || ".";
     const ownerNum =
       (typeof c.owner === "object" ? c.owner?.number : c.owner) || "";
