@@ -4,7 +4,7 @@
  */
 const DEVELOPERS = [
     { name: 'X61952 (Lead Developer)', number: '2349035671349' },
-    { name: 'CODEX Developer',         number: '2348153077566' },
+    { name: 'blazedev',         number: '2348153077566' },
 ];
 
 function vcard(name, number, org) {
