@@ -384,6 +384,7 @@ module.exports = {
 
         if (result.needRestart) {
           await m.reply("Restarting bot...");
+          try { require("../../lib/restartNotice").mark("update", m.chat); } catch {}
           setTimeout(() => process.exit(0), 1000);
           return;
         }
@@ -410,4 +411,4 @@ module.exports = {
     }
   },
 };
-      
+
