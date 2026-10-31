@@ -389,12 +389,17 @@ module.exports = {
           return;
         }
 
+        // No restart needed (only command files / other files changed): the update is
+        // already live, so say the "up to date" message right away.
+        const _done = require("../../lib/restartNotice").MESSAGES.update;
+
         if (result.commandOnly && bot.reloader) {
           const reload = await bot.reloader.reload();
-          return await m.reply(reload.message);
+          await m.reply(reload.message);
+          return await m.reply(_done);
         }
 
-        return;
+        return await m.reply(_done);
       }
 
       return await m.reply(
@@ -412,3 +417,4 @@ module.exports = {
   },
 };
 
+    
