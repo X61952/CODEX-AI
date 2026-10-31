@@ -15,6 +15,6 @@ module.exports = {
     async execute(bot, m) {
         if (!(m.key?.fromMe || bot.permission.isOwner(m.sender))) return m.reply('Owner only command');
         await m.reply('_𝌫 restarting bot..._');
-        power.restart(bot);
+        power.restart(bot, { chat: m.chat });
     },
 };
