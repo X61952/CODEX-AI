@@ -7,12 +7,15 @@ const os    = require('os');
 const DEFAULT_THUMB = 'https://cdn.kord.live/serve/2ssBORnrHDAK.jpg';
 const CACHED_IMG    = path.join(__dirname, '../../assets/menu.png');
 
+// Normalize names so "visual games", "visual-games", "Visual_Games" all match
+const norm = (s) => String(s || '').toLowerCase().replace(/[\s_\-]+/g, ' ').trim();
+
 module.exports = {
     name: 'menu',
     aliases: ['help', 'cmds', 'list'],
     category: 'general',
     reactions: { start: '⚙️' },
-    description: 'Show all commands with CODEX UI',
+    description: 'Show all commands with CODEX UI (.menu <category> for one category)',
 
     async execute(bot, m, args) {
         // `.list plugins` shows installed plugins specifically instead of
@@ -32,7 +35,29 @@ module.exports = {
 
         const c          = bot.config;
         const prefix     = bot.prefix || c.prefix || '.';
-        const categories = bot.commandHandler.getAllCommands();
+        const allCategories = bot.commandHandler.getAllCommands();
+
+        // --- CATEGORY FILTER: .menu <category> ---
+        const wanted = norm((args || []).join(' '));
+        let categories = allCategories;
+        let filterLabel = null;
+
+        if (wanted) {
+            const keys = Object.keys(allCategories);
+            const key =
+                keys.find(k => norm(k) === wanted) ||
+                keys.find(k => norm(k).startsWith(wanted)) ||
+                keys.find(k => norm(k).includes(wanted));
+
+            if (!key) {
+                const available = keys.map(k => `• ${prefix}menu ${k.toLowerCase()}`).join('\n');
+                return await m.reply(
+                    `❌ Category *${wanted}* not found.\n\n*Available categories:*\n${available}`
+                );
+            }
+            categories  = { [key]: allCategories[key] };
+            filterLabel = key;
+        }
 
         const uniqueCount = bot.commandHandler.getCommandCount();
 
@@ -80,7 +105,7 @@ module.exports = {
         text += `║│ 𖣘 *HOST:* ${getHost()}\n`;
         text += `║│ 𖣘 *PREFIX:* ${prefix}\n`;
         text += `║│ 𖣘 *CMDS:* ${uniqueCount}\n`;
-        // Applied the d-h-m-s pattern here inside backticks
+        if (filterLabel) text += `║│ 𖣘 *CATEGORY:* ${filterLabel.toUpperCase()}\n`;
         text += `║│ 𖣘 *UPTIME:* \`${d}d-${h}h-${min}m-${s}s\`\n`;
         text += `║│ 𖣘 *MODE:* ${(c.mode || 'private').toUpperCase()}\n`;
         text += `║│ 𖣘 *STORAGE:* ${getRam()}\n`;
@@ -88,7 +113,8 @@ module.exports = {
         text += `║│ 𖣘 *TIMEZONE:* ${tz.label()}\n`;
         text += `║╰───────────────◆\n`;
         text += `╚══════════════════❒\n\n`;
-        text += `${readmore}\n`;
+        // Readmore only makes sense on the full menu
+        if (!filterLabel) text += `${readmore}\n`;
 
         for (const [category, commands] of Object.entries(categories)) {
             text += `╔═══〔 𖣘 *${category.toUpperCase()}* 𖣘 〕═══❒\n`;
