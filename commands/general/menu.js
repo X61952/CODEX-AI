@@ -113,8 +113,7 @@ module.exports = {
         text += `║│ 𖣘 *TIMEZONE:* ${tz.label()}\n`;
         text += `║╰───────────────◆\n`;
         text += `╚══════════════════❒\n\n`;
-        // Readmore only makes sense on the full menu
-        if (!filterLabel) text += `${readmore}\n`;
+        text += `${readmore}\n`;
 
         for (const [category, commands] of Object.entries(categories)) {
             text += `╔═══〔 𖣘 *${category.toUpperCase()}* 𖣘 〕═══❒\n`;
