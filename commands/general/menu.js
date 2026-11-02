@@ -130,11 +130,7 @@ module.exports = {
             text += `╚══════════════════❒\n\n`;
         }
 
-        text += `╔═══〔 𖣘 *DEVELOPER* 𖣘 〕═══❒\n`;
-        text += `║╭───────────────◆\n`;
-        text += `║│ ✰ 𝗖𝗢𝗗𝗘𝗫\n`;
-        text += `║╰───────────────◆\n`;
-        text += `╚══════════════════❒`;
+        text = text.trimEnd();
 
         const getMenuImage = async () => {
             const menuUrl = c.MENU_IMAGE || null;
