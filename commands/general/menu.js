@@ -59,7 +59,15 @@ module.exports = {
             filterLabel = key;
         }
 
-        const uniqueCount = bot.commandHandler.getCommandCount();
+        // Filtered menu -> count only that category's unique commands.
+        // Normal menu -> fall back to the global count.
+        const uniqueCount = filterLabel
+            ? new Set(
+                (categories[filterLabel] || [])
+                    .filter(cmd => cmd?.name)
+                    .map(cmd => cmd.name.toLowerCase())
+              ).size
+            : bot.commandHandler.getCommandCount();
 
         // --- NEW UPTIME PATTERN LOGIC ---
         const up  = process.uptime();
