@@ -1,10 +1,17 @@
+'use strict';
 
 const yts = require('yt-search');
-const axios = require('axios');
+const { fetchMedia, sendMedia, friendlyError, safeName } = require('../../lib/socialdl');
+
+const MAX_SONG_SECONDS = 30 * 60;
+
+function videoIdOf(text) {
+    return text.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|music\.youtube\.com\/watch\?(?:.*&)?v=)([\w-]{11})/i)?.[1] || null;
+}
 
 module.exports = {
     name: 'play',
-    alias: ['song', 'music', 'ytmp3'],
+    alias: ['song', 'music'],
     desc: 'Download and send YouTube music',
     category: 'downloader',
     reactions: { start: '⏰' },
@@ -15,67 +22,46 @@ module.exports = {
             return await reply(`_*provide a query*_\n_❡ example: ${prefix}play unstoppable_`);
         }
 
+        let media;
         try {
-            // Search YouTube
-            const ytsr = await yts(query);
-            const ytsa = ytsr.videos[0];
-            
+            // Search YouTube (or look up the video if a link was given)
+            const id = videoIdOf(query);
+            const ytsa = id ? await yts({ videoId: id }) : (await yts(query)).videos[0];
+
             if (!ytsa) {
                 return await reply('❌ No results found for: ' + query);
             }
 
-            // Try multiple download APIs
-            const APIS = [
-                `https://yt-dl.officialhectormanuel.workers.dev/?url=${encodeURIComponent(ytsa.url)}`,
-                `https://api.siputzx.my.id/api/d/ytmp3?url=${encodeURIComponent(ytsa.url)}`,
-                `https://api.ryzendesu.vip/api/downloader/ytmp3?url=${encodeURIComponent(ytsa.url)}`,
-            ];
-
-            let audioBuffer = null;
-
-            for (const api of APIS) {
-                try {
-                    const resp = await axios.get(api, { timeout: 30000 });
-                    const data = resp.data;
-                    let audioUrl = data?.audio || data?.url || data?.data?.url || data?.download?.url || null;
-                    
-                    if (!audioUrl && typeof data === 'string' && data.startsWith('http')) {
-                        audioUrl = data;
-                    }
-                    if (!audioUrl) continue;
-                    
-                    const audioResp = await axios.get(audioUrl, { responseType: 'arraybuffer', timeout: 60000 });
-                    audioBuffer = Buffer.from(audioResp.data);
-                    
-                    if (audioBuffer.length > 5000) break;
-                } catch (e) { 
-                    continue; 
-                }
+            const seconds = Number(ytsa.seconds) || Number(ytsa.duration?.seconds) || 0;
+            if (seconds > MAX_SONG_SECONDS) {
+                return await reply(`❌ That track is too long (max ${MAX_SONG_SECONDS / 60} minutes).\n*${ytsa.title}*`);
             }
 
-            if (!audioBuffer || audioBuffer.length < 5000) {
-                return await reply(`❌ Download failed. Try again later.\nSong: *${ytsa.title}*\nURL: ${ytsa.url}`);
+            const url = ytsa.url || `https://www.youtube.com/watch?v=${id}`;
+            media = await fetchMedia(url, { audioOnly: true });
+
+            const stamp = ytsa.duration?.timestamp || ytsa.timestamp || '?';
+            const cap = `*${ytsa.title}*\n\n00:00 ───◁ㅤ ❚❚ ㅤ▷─── ${stamp} ♡`;
+            const thumb = ytsa.thumbnail || ytsa.image;
+
+            // 1. Thumbnail WITH the caption
+            if (thumb) {
+                await (sock.sock || sock).sendMessage(m.chat, {
+                    image: { url: thumb },
+                    caption: cap
+                }, { quoted: m }).catch(() => reply(cap));
+            } else {
+                await reply(cap);
             }
 
-            // Build your custom caption
-            const cap = `*${ytsa.title}*\n\n00:00 ───◁ㅤ ❚❚ ㅤ▷─── ${ytsa.duration?.timestamp || ytsa.timestamp || '?'} ♡`;
-
-            // 1. Send the thumbnail image WITH your caption
-            await sock.sendMessage(m.chat, {
-                image: { url: ytsa.thumbnail },
-                caption: cap
-            }, { quoted: m });
-
-            // 2. Send the pure audio file right below it (no link preview)
-            await sock.sendMessage(m.chat, {
-                audio: audioBuffer,
-                mimetype: 'audio/mpeg',
-                fileName: `${ytsa.title}.mp3`
-            });
+            // 2. The audio file right below it
+            await sendMedia(sock, m, media, { name: safeName(ytsa.title, 'song') });
 
         } catch (err) {
-            console.error(err);
-            return await reply(`an error occured: ${err.message || err}`);
+            console.error('[play]', err?.message || err);
+            return await reply(friendlyError(err));
+        } finally {
+            media?.cleanup();
         }
     }
 };
