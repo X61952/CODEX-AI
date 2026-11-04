@@ -1,61 +1,20 @@
 'use strict';
- 
-const axios  = require('axios');
-const playdl = require('play-dl');
-const { quotedUrl } = require('../../lib/quotedUrl');
- 
-const BASE = 'https://apis.davidcyriltech.my.id';
- 
+
+const { runDownload } = require('../../lib/socialdl');
+
 module.exports = {
-    commands:    ['ytmp3', 'ytvid-audio', 'ytaudio2'],
+    name: 'ytmp3',
+    aliases: ['ytvid-audio', 'ytaudio2'],
     category: 'downloader',
-    description: 'Download YouTube audio as MP3 by URL',
-    permission:  'public',
-    group:       true,
-    private:     true,
- 
-    run: async (sock, message, args, { sender, contextInfo }) => {
-        const url = args[0] || quotedUrl(message);
-        if (!url || !/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)/.test(url)) {
-            return sock.sendMessage(message.chat, {
-                text: 'Please provide a valid YouTube URL.\nExample: `.ytmp3 https://youtu.be/dQw4w9WgXcQ`',
-                contextInfo
-            }, { quoted: message });
-        }
- 
-        await sock.sendMessage(message.chat, { text: 'Fetching audio...', contextInfo }, { quoted: message });
- 
-        try {
-            let title = 'Audio', artist = 'Unknown', duration = '';
-            try {
-                const info = await playdl.video_info(url);
-                const d = info.video_details;
-                title    = d.title || title;
-                artist   = d.channel?.name || artist;
-                duration = d.durationRaw || '';
-            } catch {}
- 
-            const { data } = await axios.get(`${BASE}/download/ytmp3?url=${encodeURIComponent(url)}`, { timeout: 30000 });
-            const audioUrl = data?.result?.download_url || data?.result?.downloadUrl || data?.result?.url || data?.url || data?.link;
-            if (!audioUrl) throw new Error('Could not retrieve download link');
- 
-            await sock.sendMessage(message.chat, {
-                audio:    { url: audioUrl },
-                mimetype: 'audio/mpeg',
-                ptt:      false,
-                contextInfo
-            }, { quoted: message });
- 
-            await sock.sendMessage(message.chat, {
-                text: `*${title}*\nArtist: ${artist}  -  Duration: ${duration}`,
-                contextInfo
-            }, { quoted: message });
- 
-        } catch (err) {
-            await sock.sendMessage(message.chat, {
-                text: `Audio download failed: ${err.message}`,
-                contextInfo
-            }, { quoted: message });
-        }
-    }
+    reactions: { start: '📥' },
+    description: 'Download YouTube audio as MP3 by URL.',
+    usage: '.ytmp3 <url>',
+
+    async execute(bot, m, args) {
+        return runDownload(bot, m, args, {
+            platforms: ['youtube'],
+            audioOnly: true,
+            usage: `Usage: ${bot.prefix}ytmp3 <YouTube url>\nYou can also reply to a message that has a link.`,
+        });
+    },
 };
