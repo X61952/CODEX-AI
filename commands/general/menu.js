@@ -162,7 +162,7 @@ module.exports = {
 
         const imgBuffer = await getMenuImage();
 
-        await bot.sock.sendMessage(
+        await bot.sendMessage(
             m.chat,
             imgBuffer ? { image: imgBuffer, caption: text } : { text },
             { quoted: m }

@@ -2,7 +2,8 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { applyFancyFont, FANCY_FONT_COUNT, FONT_COUNT, FONT_NAMES } = require('../lib/fontEngine');
+const { applyFont, applyFancyFont, FANCY_FONT_COUNT, FONT_COUNT, FONT_NAMES } = require('../lib/fontEngine');
+const MessageHandler = require('../lib/messageHandler');
 const fancyCommand = require('../commands/bot/fancy');
 const botfontCommand = require('../commands/bot/botfont');
 
@@ -45,4 +46,39 @@ test('.botfont previews styles without applying the bot-wide font again', async 
 
     assert.equal(reply[2].skipBotFont, true);
     assert.equal(reply[0].split('\n').length, FANCY_FONT_COUNT);
+});
+
+test('BOT_FONT styles text inside menu frames without changing the frame characters', () => {
+    const output = applyFont('╔ MENU ╗\n║ USER: CODEX\n╚ END ╝', 1);
+    assert.equal(output, '╔ ᴍᴇɴᴜ ╗\n║ ᴜꜱᴇʀ: ᴄᴏᴅᴇx\n╚ ᴇɴᴅ ╝');
+});
+
+test('command socket text sends use the same BOT_FONT pipeline', async () => {
+    const rawSends = [];
+    let formattedSendCount = 0;
+    const bot = {
+        config: { BOT_FONT: 1 },
+        sock: {
+            sendMessage: async (...args) => { rawSends.push(args); },
+            groupMetadata() { return this; },
+        },
+        sendMessage: async (jid, content, options) => {
+            formattedSendCount++;
+            if (typeof content.text === 'string') content.text = applyFont(content.text, bot.config.BOT_FONT);
+            return bot.sock.sendMessage(jid, content, options);
+        },
+    };
+    const handler = Object.create(MessageHandler.prototype);
+    handler.bot = bot;
+    const commandContext = handler._commandContext();
+
+    await commandContext.sock.sendMessage('chat', { text: 'BOT REPLY' }, { quoted: 'message' });
+    await commandContext.sendMessage('chat', { text: 'BOT REPLY' }, { quoted: 'message' });
+
+    assert.equal(formattedSendCount, 2);
+    assert.deepEqual(rawSends, [
+        ['chat', { text: 'ʙᴏᴛ ʀᴇᴘʟʏ' }, { quoted: 'message' }],
+        ['chat', { text: 'ʙᴏᴛ ʀᴇᴘʟʏ' }, { quoted: 'message' }],
+    ]);
+    assert.equal(commandContext.sock.groupMetadata(), bot.sock);
 });
