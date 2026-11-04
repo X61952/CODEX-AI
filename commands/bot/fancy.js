@@ -22,6 +22,6 @@ List: ${bot.prefix}botfont`);
         }
 
         const result = applyFancyFont(text, num);
-        await m.reply(`${result}`);
+        await m.reply(`${result}`, {}, { skipBotFont: true });
     }
 };

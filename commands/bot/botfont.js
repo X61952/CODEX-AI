@@ -5,7 +5,7 @@ module.exports = {
     aliases: ['fonts', 'fontlist'],
     category: 'bot',
     reactions: { start: '🎨' },
-    description: 'List all available bot fonts and fancy text styles',
+    description: 'List all available fancy text styles',
 
     async execute(bot, m, args) {
         const PREVIEW = 'CODEX-AI';
@@ -13,6 +13,6 @@ module.exports = {
         for (let i = 1; i <= FANCY_FONT_COUNT; i++) {
             text += `${i}. ${applyFancyFont(PREVIEW, i)} — ${FONT_NAMES[i - 1] || `style-${i}`}\n`;
         }
-        await m.reply(text.trim());
+        await m.reply(text.trim(), {}, { skipBotFont: true });
     }
 };

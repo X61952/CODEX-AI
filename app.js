@@ -1307,14 +1307,15 @@ ${newText || "(could not read new text)"}
   // Single pipeline: font + character/emoji applied here for ALL commands.
   async sendMessage(jid, content, options = {}) {
     try {
+      const { skipBotFont = false, ...sendOptions } = options;
       const fontNum = this.config.BOT_FONT || 0;
       // Apply font to text and caption
-      if (typeof content.text === "string" && fontNum > 0)
+      if (!skipBotFont && typeof content.text === "string" && fontNum > 0)
         content.text = applyFont(content.text, fontNum);
-      if (typeof content.caption === "string" && fontNum > 0)
+      if (!skipBotFont && typeof content.caption === "string" && fontNum > 0)
         content.caption = applyFont(content.caption, fontNum);
 
-      const sent = await this.sock.sendMessage(jid, content, options);
+      const sent = await this.sock.sendMessage(jid, content, sendOptions);
       if (autoReadAllows(this.config, jid) && sent?.key)
         await this.sock.readMessages([sent.key]).catch(() => {});
       return sent;
