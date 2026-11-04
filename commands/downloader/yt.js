@@ -1,5 +1,6 @@
-const axios = require('axios');
-const { quotedUrl } = require('../../lib/quotedUrl');
+'use strict';
+
+const { runDownload, MAX_VIDEO_SECONDS } = require('../../lib/socialdl');
 
 module.exports = {
     name: 'yt',
@@ -7,32 +8,13 @@ module.exports = {
     category: 'downloader',
     reactions: { start: '📥' },
     description: 'Download a YouTube video.',
-    usage: '.yt <url>',
+    usage: '.yt <url> [720p|480p|best]',
 
     async execute(bot, m, args) {
-        const url = args[0]?.trim() || quotedUrl(m);
-        if (!url) return m.reply(`Usage: ${bot.prefix}yt <url>`);
-
-        try {
-            const { data } = await axios.get(
-                `https://docs.prexzyapis.com/download/youtube-video?url=${encodeURIComponent(url)}`,
-                { timeout: 30000 }
-            );
-
-            if (!data.status || !data.download_url) {
-                return m.reply(`No video found for: ${url}`);
-            }
-
-            const info = data.info || {};
-            const caption = `${info.title || 'YouTube Video'} · ${info.quality || ''}`.trim();
-
-            await bot.sock.sendMessage(m.chat, {
-                video: { url: data.download_url },
-                caption,
-                mimetype: 'video/mp4',
-            }, { quoted: m });
-        } catch (err) {
-            await m.reply(`Error downloading video: ${err.message}`);
-        }
+        return runDownload(bot, m, args, {
+            platforms: ['youtube'],
+            maxSeconds: MAX_VIDEO_SECONDS,
+            usage: `Usage: ${bot.prefix}yt <YouTube url> [720p|480p|best]\nYou can also reply to a message that has a link.`,
+        });
     },
 };
