@@ -2,6 +2,7 @@
 
 const yts = require('yt-search');
 const { fetchMedia, sendMedia, friendlyError, safeName } = require('../../lib/socialdl');
+const { getYouTubeAudio, extractYouTubeId } = require('../../lib/ytaudio');
 
 const MAX_SONG_SECONDS = 30 * 60;
 
@@ -37,8 +38,18 @@ module.exports = {
                 return await reply(`❌ That track is too long (max ${MAX_SONG_SECONDS / 60} minutes).\n*${ytsa.title}*`);
             }
 
-            const url = ytsa.url || `https://www.youtube.com/watch?v=${id}`;
-            media = await fetchMedia(url, { audioOnly: true });
+            const videoId = id || ytsa.videoId || extractYouTubeId(ytsa.url);
+            const url = ytsa.url || `https://www.youtube.com/watch?v=${videoId}`;
+
+            // 1. Converter providers first (works on hosts where YouTube blocks yt-dlp)
+            // 2. social-dl as the fallback
+            let audio = null;
+            try {
+                audio = await getYouTubeAudio(videoId);
+            } catch (err) {
+                console.warn('[play] converters failed, trying social-dl:', err.message);
+                media = await fetchMedia(url, { audioOnly: true });
+            }
 
             const stamp = ytsa.duration?.timestamp || ytsa.timestamp || '?';
             const cap = `*${ytsa.title}*\n\n00:00 ───◁ㅤ ❚❚ ㅤ▷─── ${stamp} ♡`;
@@ -55,7 +66,16 @@ module.exports = {
             }
 
             // 2. The audio file right below it
-            await sendMedia(sock, m, media, { name: safeName(ytsa.title, 'song') });
+            if (audio) {
+                await (sock.sock || sock).sendMessage(m.chat, {
+                    audio: audio.buffer,
+                    mimetype: 'audio/mpeg',
+                    ptt: false,
+                    fileName: `${safeName(ytsa.title, 'song')}.mp3`
+                }, { quoted: m });
+            } else {
+                await sendMedia(sock, m, media, { name: safeName(ytsa.title, 'song') });
+            }
 
         } catch (err) {
             console.error('[play]', err?.message || err);
