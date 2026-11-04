@@ -1,10 +1,6 @@
-const axios = require('axios');
-const { quotedUrl } = require('../../lib/quotedUrl');
+'use strict';
 
-function quotedText(m) {
-    const qm = m.msg?.contextInfo?.quotedMessage;
-    return qm?.conversation || qm?.extendedTextMessage?.text || '';
-}
+const { runDownload } = require('../../lib/socialdl');
 
 module.exports = {
     name: 'yturld',
@@ -15,29 +11,10 @@ module.exports = {
     usage: '.yturld <url>',
 
     async execute(bot, m, args) {
-        const url = args[0] || quotedUrl(m);
-        if (!url) return m.reply(`Usage: ${bot.prefix}yturld <url>`);
-
-        try {
-            const apiUrl = `https://apis.prexzyvilla.site/download/ytaudio?url=${encodeURIComponent(url)}`;
-            const res = await axios.get(apiUrl, { timeout: 30000 });
-            const data = res.data;
-
-            if (!data.download || !data.title) return m.reply('Failed to get audio.');
-
-            const audioUrl = data.download;
-            const title = data.title.replace(/[^\w\s]/gi, '') || 'youtube_audio';
-
-            const mp3Res = await axios.get(audioUrl, { responseType: 'arraybuffer', timeout: 60000 });
-            const buffer = Buffer.from(mp3Res.data);
-
-            await bot.sock.sendMessage(m.chat, {
-                audio: buffer,
-                mimetype: 'audio/mpeg',
-                fileName: `${title}.mp3`,
-            }, { quoted: m });
-        } catch (err) {
-            await m.reply(`Failed to download YouTube audio: ${err.message}`);
-        }
+        return runDownload(bot, m, args, {
+            platforms: ['youtube'],
+            audioOnly: true,
+            usage: `Usage: ${bot.prefix}yturld <YouTube url>\nYou can also reply to a message that has a link.`,
+        });
     },
 };
