@@ -7,9 +7,16 @@ const MessageHandler = require('../lib/messageHandler');
 const fancyCommand = require('../commands/bot/fancy');
 const botfontCommand = require('../commands/bot/botfont');
 
-test('font registry has 81 distinct styles', () => {
-    assert.equal(FANCY_FONT_COUNT, 81);
+test('font registry has 77 distinct styles', () => {
+    assert.equal(FANCY_FONT_COUNT, 77);
     assert.equal(FONT_COUNT, FANCY_FONT_COUNT);
+
+    const previewStyles = new Set();
+    for (let font = 1; font <= FANCY_FONT_COUNT; font++) {
+        const output = applyFancyFont('CODEX AI', font);
+        assert.ok(!previewStyles.has(output), `Style ${font} duplicates a CODEX AI preview`);
+        previewStyles.add(output);
+    }
 
     const samples = [
         'CODEX-AI codex 0123456789',
