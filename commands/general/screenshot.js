@@ -16,7 +16,7 @@ module.exports = {
   async execute(sock, m, { args, reply }) {
     const url = args.join(' ').trim();
     if (!url) {
-      return reply('⚠️ *Screenshot failed*\n\nPlease provide a website URL.\nExample: .screenshot https://example.com');
+      return reply('Usage: .screenshot <URL>\nExample: .screenshot https://example.com');
     }
 
     let image;
@@ -24,7 +24,7 @@ module.exports = {
       image = await captureScreenshot(url);
     } catch (error) {
       console.error(`[screenshot] ${error.code || 'CAPTURE_ERROR'}:`, error.cause || error);
-      return reply(`⚠️ *Screenshot failed*\n\n${getUserError(error, 'screenshot')}`);
+      return reply(getUserError(error, 'screenshot'));
     }
 
     try {
@@ -34,7 +34,7 @@ module.exports = {
       }, { quoted: m });
     } catch (error) {
       console.error('[screenshot] DELIVERY_ERROR:', error);
-      return reply('⚠️ *delivery failed*\n\nThe image was captured, but WhatsApp could not send it. Please try again.');
+      return reply('Could not send screenshot.');
     }
   },
 };

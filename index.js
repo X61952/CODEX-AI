@@ -45,6 +45,7 @@ _pm2Boot.installPrefix();
         /Session ID unchanged, using local credentials/, /^\W*Using local credentials/,
         /^Using WA v/, /^Connecting to WhatsApp\.\.\./, /^Connection established/,
         /^Installing Commands\/Assets/, /^Environment variables reloaded/, /^Installed \d+ commands/,
+        /^\[web-capture\]/,
         /^Successfully deployed on pterodactyl \(panel\)/,
         /^\d+ commands failed to load/i,
         // login / session restore / pairing (lib/connection.js) — the prompts must

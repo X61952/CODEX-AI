@@ -116,12 +116,21 @@ test('rejects DNS failures with a user-friendly error', async () => {
     }),
     { code: 'DNS_ERROR' },
   );
-  assert.match(getUserError(new CaptureError('DNS_ERROR'), 'screenshot'), /could not be resolved/i);
+  assert.equal(getUserError(new CaptureError('DNS_ERROR'), 'screenshot'), 'Could not resolve website.');
+});
+
+test('uses concise screenshot error messages', () => {
+  assert.equal(getUserError(new CaptureError('UNSAFE_URL'), 'screenshot'), 'Only public websites on standard web ports are allowed.');
+  assert.equal(getUserError(new CaptureError('TIMEOUT'), 'screenshot'), 'Page timed out.');
+  assert.equal(getUserError(new CaptureError('OUTPUT_TOO_LARGE'), 'screenshot'), 'Screenshot is too large to send.');
+  assert.equal(getUserError(new CaptureError('PAGE_UNAVAILABLE'), 'screenshot'), 'Could not capture page.');
+  assert.equal(getUserError(new CaptureError('BROWSER_UNAVAILABLE'), 'screenshot'), 'Playwright unavailable. Admin: run npm install playwright.');
+  assert.equal(getUserError(new CaptureError('BROWSER_INSTALL_FAILED'), 'screenshot'), 'Chromium install failed. Admin: run npx playwright install chromium.');
 });
 
 test('reports a clear error when host startup cannot install Chromium', () => {
   assert.match(
     getUserError(new CaptureError('BROWSER_INSTALL_FAILED'), 'screenshot'),
-    /host could not install the browser/i,
+    /chromium install failed/i,
   );
 });

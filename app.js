@@ -553,6 +553,11 @@ class CODEXAI {
     await require('./lib/startupUpdate').run(this.config);
     const { loaded, failed } = await this.reloader.loadCommands();
     if (failed > 0) console.log(chalk.red(`${failed} commands failed to load`));
+    try {
+      await require('./lib/webCapture').ensureChromiumInstalled();
+    } catch (error) {
+      console.error(`[web-capture] ${error.code || 'STARTUP_ERROR'}: ${error.message}`);
+    }
     this.successCmds = loaded;
     await startConnection(this);
   }

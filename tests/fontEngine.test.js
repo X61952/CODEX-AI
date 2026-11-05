@@ -2,19 +2,20 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { applyFont, applyFancyFont, FANCY_FONT_COUNT, FONT_COUNT, FONT_NAMES } = require('../lib/fontEngine');
+const { applyFont, applyFancyFont, FANCY_FONT_COUNT, FONT_COUNT } = require('../lib/fontEngine');
 const MessageHandler = require('../lib/messageHandler');
 const fancyCommand = require('../commands/bot/fancy');
 const botfontCommand = require('../commands/bot/botfont');
 
-test('fancy font registry contains no duplicate styles and has a name for each', () => {
-    assert.equal(FANCY_FONT_COUNT, FONT_COUNT);
-    assert.equal(FANCY_FONT_COUNT, FONT_NAMES.length);
+test('font registry has 81 distinct styles', () => {
+    assert.equal(FANCY_FONT_COUNT, 81);
+    assert.equal(FONT_COUNT, FANCY_FONT_COUNT);
 
     const samples = [
         'CODEX-AI codex 0123456789',
         'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
         'Hello, world! 123',
+        '!@#$%^&*()_+-=[]{};:,.<>/?',
     ];
     const styles = new Map();
 
@@ -36,19 +37,27 @@ test('.fancy bypasses the configured bot-wide font transformation', async () => 
     assert.equal(reply[2].skipBotFont, true);
 });
 
-test('.botfont previews styles without applying the bot-wide font again', async () => {
+test('.botfont lists only numbered previews without applying BOT_FONT again', async () => {
     let reply;
+    const preview = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     await botfontCommand.execute(
         { prefix: '.' },
         { reply: async (...args) => { reply = args; } },
         []
     );
 
+    const lines = reply[0].split('\n');
+    assert.equal(lines.length, FANCY_FONT_COUNT);
+    const previews = lines.map((line, index) => {
+        assert.ok(line.startsWith(`${index + 1}. `));
+        return line.slice(`${index + 1}. `.length);
+    });
+    assert.equal(new Set(previews).size, FANCY_FONT_COUNT);
+    assert.ok(reply[0].length < 65536);
     assert.equal(reply[2].skipBotFont, true);
-    assert.equal(reply[0].split('\n').length, FANCY_FONT_COUNT);
 });
 
-test('BOT_FONT styles text inside menu frames without changing the frame characters', () => {
+test('BOT_FONT styles text inside menu frames without changing frame characters', () => {
     const output = applyFont('╔ MENU ╗\n║ USER: CODEX\n╚ END ╝', 1);
     assert.equal(output, '╔ ᴍᴇɴᴜ ╗\n║ ᴜꜱᴇʀ: ᴄᴏᴅᴇx\n╚ ᴇɴᴅ ╝');
 });

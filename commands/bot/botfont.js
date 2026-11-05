@@ -1,4 +1,4 @@
-const { applyFancyFont, FANCY_FONT_COUNT, FONT_NAMES } = require('../../lib/fontEngine');
+const { applyFancyFont, FANCY_FONT_COUNT } = require('../../lib/fontEngine');
 
 module.exports = {
     name: 'botfont',
@@ -7,12 +7,12 @@ module.exports = {
     reactions: { start: '🎨' },
     description: 'List all available fancy text styles',
 
-    async execute(bot, m, args) {
-        const PREVIEW = 'CODEX-AI';
-        let text = '';
-        for (let i = 1; i <= FANCY_FONT_COUNT; i++) {
-            text += `${i}. ${applyFancyFont(PREVIEW, i)} — ${FONT_NAMES[i - 1] || `style-${i}`}\n`;
-        }
-        await m.reply(text.trim(), {}, { skipBotFont: true });
+    async execute(bot, m) {
+        const preview = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const styles = Array.from(
+            { length: FANCY_FONT_COUNT },
+            (_, index) => `${index + 1}. ${applyFancyFont(preview, index + 1)}`
+        );
+        await m.reply(styles.join('\n'), {}, { skipBotFont: true });
     }
 };
