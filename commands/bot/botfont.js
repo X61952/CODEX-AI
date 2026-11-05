@@ -8,7 +8,7 @@ module.exports = {
     description: 'List all available fancy text styles',
 
     async execute(bot, m) {
-        const preview = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const preview = 'CODEX AI';
         const styles = Array.from(
             { length: FANCY_FONT_COUNT },
             (_, index) => `${index + 1}. ${applyFancyFont(preview, index + 1)}`

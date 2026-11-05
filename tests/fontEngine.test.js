@@ -39,7 +39,7 @@ test('.fancy bypasses the configured bot-wide font transformation', async () => 
 
 test('.botfont lists only numbered previews without applying BOT_FONT again', async () => {
     let reply;
-    const preview = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const preview = 'CODEX AI';
     await botfontCommand.execute(
         { prefix: '.' },
         { reply: async (...args) => { reply = args; } },
@@ -52,7 +52,10 @@ test('.botfont lists only numbered previews without applying BOT_FONT again', as
         assert.ok(line.startsWith(`${index + 1}. `));
         return line.slice(`${index + 1}. `.length);
     });
-    assert.equal(new Set(previews).size, FANCY_FONT_COUNT);
+    assert.deepEqual(
+        previews,
+        Array.from({ length: FANCY_FONT_COUNT }, (_, index) => applyFancyFont(preview, index + 1))
+    );
     assert.ok(reply[0].length < 65536);
     assert.equal(reply[2].skipBotFont, true);
 });
