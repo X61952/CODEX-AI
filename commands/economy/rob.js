@@ -1,4 +1,4 @@
-const { getTarget } = require('../../lib/getTarget');
+const { getTarget, resolveTargets } = require('../../lib/getTarget');
 const { loadDB, saveDB, getUser, onCooldown, setCooldown, formatCooldown, addXP, hasItem, removeItem, fmt, CURRENCY } = require('../../lib/economyEngine');
 
 const COOLDOWN = 45 * 60 * 1000; // 45 minutes
@@ -20,21 +20,25 @@ module.exports = {
 
         const targetJid = getTarget(m);
         if (!targetJid) return await m.reply(`Usage: *.rob @user*\nTag someone in the group to rob them.`);
-        if (cleanJid(m.sender) === targetJid) return await m.reply(`❌ You can't rob yourself!`);
+        const targetJids = await resolveTargets(bot, m);
+        if (targetJids.includes(cleanJid(m.sender))) return await m.reply(`❌ You can't rob yourself!`);
 
         const wait = onCooldown(user, 'rob', COOLDOWN);
         if (wait) return await m.reply(`⏳ You're being watched by the police!\nTry again in *${formatCooldown(wait)}*.`);
 
         setCooldown(user, 'rob');
 
-        const target = getUser(db, targetJid);
+        const targetAccountJid =
+            targetJids.find(jid => jid.endsWith('@s.whatsapp.net') && db[jid]) ||
+            targetJids.find(jid => db[jid]) ||
+            targetJid;
+        const target = getUser(db, targetAccountJid);
 
         // Target has a shield — rob blocked
         if (hasItem(target, 'shield')) {
             removeItem(target, 'shield');
             user.nerve = Math.max(0,(user.nerve??100)-15);
-        if(success) { user.battle = user.battle||{}; user.battle.wins=(user.battle.wins||0)+1; } else { user.battle = user.battle||{}; user.battle.losses=(user.battle.losses||0)+1; }
-        saveDB(db);
+            saveDB(db);
             return await m.reply(`🛡️ *ROB BLOCKED!*\n─────────────\n@${targetJid.split('@')[0]} had a *Shield* equipped!\nYour rob attempt failed and their shield broke.`);
         }
 
