@@ -1,5 +1,5 @@
 const { loadDB, saveDB, getUser } = require('../../lib/economyEngine');
-const COOLDOWN = 4 * 60 * 60 * 1000; // 4 hours
+const COOLDOWN = 3 * 60 * 1000; // 3 minutes
 
 module.exports = {
     name: 'petfeed',
@@ -19,8 +19,8 @@ module.exports = {
         const wait = COOLDOWN - (now - last);
 
         if (wait > 0 && last > 0) {
-            const h = Math.floor(wait/3600000), mn = Math.floor((wait%3600000)/60000);
-            return await m.reply(`⏳ *${p.name}* is not hungry yet!\nFeed again in *${h}h ${mn}m*`);
+            const mn = Math.floor(wait / 60000), sec = Math.ceil((wait % 60000) / 1000);
+            return await m.reply(`⏳ *${p.name}* is not hungry yet!\nFeed again in *${mn}m ${sec}s*`);
         }
 
         p.health    = Math.min(100, (p.health    || 0) + 20);

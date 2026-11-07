@@ -1,6 +1,6 @@
 const { loadDB, saveDB, getUser, onCooldown, setCooldown, formatCooldown, addXP, fmt, CURRENCY } = require('../../lib/economyEngine');
 
-const COOLDOWN = 30 * 60 * 1000; // 30 minutes
+const COOLDOWN = 3 * 60 * 1000; // 3 minutes
 
 const JOBS = [
     { name: 'Programmer', emoji: '💻', min: 200, max: 600 },
@@ -19,7 +19,7 @@ module.exports = {
     name: 'work',
     category: 'economy',
     reactions: { start: '⚙️' },
-    description: 'Work for coins (30 min cooldown)',
+    description: 'Work for coins (3 min cooldown)',
 
     async execute(bot, m, args) {
         const db = loadDB();

@@ -1,6 +1,6 @@
 const { loadDB, saveDB, getUser, onCooldown, setCooldown, formatCooldown, addXP, fmt, CURRENCY } = require('../../lib/economyEngine');
 
-const COOLDOWN = 5 * 60 * 1000; // 5 minutes
+const COOLDOWN = 2 * 60 * 1000; // 2 minutes
 
 const RESPONSES = [
     { msg: 'A stranger felt sorry for you', success: true },
@@ -15,7 +15,7 @@ module.exports = {
     name: 'beg',
     category: 'economy',
     reactions: { start: '⚙️' },
-    description: 'Beg for coins (5 min cooldown)',
+    description: 'Beg for coins (2 min cooldown)',
 
     async execute(bot, m, args) {
         const db = loadDB();

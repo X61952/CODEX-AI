@@ -1,6 +1,6 @@
 const { loadDB, saveDB, getUser, onCooldown, setCooldown, formatCooldown, addXP, hasItem, removeItem, fmt, CURRENCY } = require('../../lib/economyEngine');
 
-const COOLDOWN = 25 * 60 * 1000; // 25 minutes
+const COOLDOWN = 6 * 60 * 1000; // 6 minutes
 
 const GEMS = [
     { name: 'dirt', emoji: '🪨', value: 0, chance: 0.20 },
@@ -15,7 +15,7 @@ module.exports = {
     aliases: ['mining'],
     category: 'economy',
     reactions: { start: '⚙️' },
-    description: 'Mine for gems and coins (25 min cooldown)',
+    description: 'Mine for gems and coins (6 min cooldown)',
 
     async execute(bot, m, args) {
         const db = loadDB();
