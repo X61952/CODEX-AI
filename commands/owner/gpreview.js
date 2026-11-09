@@ -31,7 +31,7 @@ module.exports = {
                 `*${P}gpreview morning*  random line\n` +
                 `*${P}gpreview night 5*  line number 5\n` +
                 `*${P}gpreview all*  one of each\n\n` +
-                `_The preview is sent in the chat you use it in (DM or group). Real greetings only go to groups that have *${P}greetings on*._`,
+                `_The preview is sent in the chat you use it in (DM or group). Real greetings are posted only in groups that have *${P}greetings on*._`,
             );
         }
 
@@ -55,3 +55,4 @@ module.exports = {
         }
     },
 };
+                
