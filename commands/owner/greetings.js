@@ -43,12 +43,15 @@ async function panel(bot, m, settings) {
     let here = '';
     if (m.isGroup) {
         const g = settings.groups[m.chat];
-        here = `This group  ${g?.enabled ? '✅ *ON*' : '❌ *OFF*'}${g?.enabled ? `   ·   tag all: ${g.tag ? 'on' : 'off'}` : ''}\n`;
+        here = `This group  ${g?.enabled ? '✅ *ON*' : '❌ *OFF*'}\n`;
     }
 
+    const jid = G.ownerJid(bot);
     return [
-        '🌅 *GROUP GREETINGS*',
+        '🌅 *OWNER GREETINGS*',
         RULE,
+        `Greets      owner${jid ? ` (@${jid.split('@')[0]})` : ''}`,
+        `Card name   ${G.ownerName(bot, settings) || '_not set_'}`,
         here + `Groups on   *${groups.length}*`,
         `Card        ${settings.card ? 'photo card + caption' : 'text only'}`,
         '',
@@ -62,7 +65,7 @@ async function panel(bot, m, settings) {
         `*${P}greetings on* / *off*  _(send it inside the group)_`,
         `*${P}greetings groups*  _(list the groups that get greetings)_`,
         `*${P}greetings test* [${SLOT_WORDS.slice(1, -1)}]`,
-        `*${P}greetings tag* on / off  _(notify every member)_`,
+        `*${P}greetings name* <your name>  _(shown on the card)_`,
         `*${P}greetings time* ${SLOT_WORDS} <time>`,
         `*${P}greetings tz* <zone>  (e.g. Africa/Lagos)`,
         `*${P}greetings card* on / off`,
@@ -75,8 +78,8 @@ module.exports = {
     aliases: ['greeting', 'greet'],
     category: 'owner',
     reactions: { start: '🌅' },
-    description: 'Greet a group every morning, afternoon, evening and night (timezone aware).',
-    usage: '.greetings on | off | status | groups | test | tag | time | tz | card',
+    description: 'Greet the owner (tagged) in chosen groups every morning, afternoon, evening and night (timezone aware).',
+    usage: '.greetings on | off | status | groups | test | name | time | tz | card',
     ownerOnly: true,
 
     async execute(bot, m, args) {
@@ -90,7 +93,8 @@ module.exports = {
         switch (sub) {
             case 'on': case 'enable': case 'start': {
                 const jid = targetGroup(m, rest);
-                if (!jid) return m.reply(`👥 Greetings are sent to *groups*.\nSend *${P}greetings on* inside the group you want, or from here use:\n*${P}greetings on <group id>*  _(ends with @g.us)_`);
+                if (!jid) return m.reply(`👥 The greeting for you is posted in the *groups* you choose.\nSend *${P}greetings on* inside the group you want, or from here use:\n*${P}greetings on <group id>*  _(ends with @g.us)_`);
+                G.update(s => { if (!s.name && m.pushName) s.name = G.cleanName(m.pushName); });
                 const settings = G.enableGroup(jid);
                 const name = m.isGroup ? '' : ` for *${await groupName(bot, jid)}*`;
                 const times = G.SLOTS.map(s => `${G.META[s].emoji} ${G.META[s].label} ${G.slotLabelTime(settings, s)}`).join('\n');
@@ -128,13 +132,17 @@ module.exports = {
                 return;
             }
 
-            case 'tag': case 'tagall': {
-                const v = String(rest.find(a => ['on', 'off'].includes(String(a).toLowerCase())) || '').toLowerCase();
-                const jid = targetGroup(m, rest);
-                if (!v || !jid) return m.reply(`Usage (inside the group): *${P}greetings tag on|off*\nWhen on, every member gets notified by the greeting (without a long list of names).`);
-                if (!G.readSettings().groups[jid]?.enabled) return m.reply(`Turn greetings on first with *${P}greetings on*.`);
-                G.update(s => { s.groups[jid].tag = v === 'on'; });
-                return m.reply(v === 'on' ? '🔔 Every member will be notified by the greetings.' : '🔕 Greetings will no longer notify every member.');
+            case 'name': {
+                const value = rest.join(' ').trim();
+                if (!value) return m.reply(`Usage: *${P}greetings name* <your name>\nThis name is written on the greeting card.\nUse *${P}greetings name reset* to go back to the owner name in the config.`);
+                if (['reset', 'default', 'off'].includes(value.toLowerCase())) {
+                    G.update(s => { s.name = ''; });
+                    return m.reply('✅ Card name reset to the owner name from the config.');
+                }
+                const name = G.cleanName(value);
+                if (!name) return m.reply('❌ That name is not valid.');
+                G.update(s => { s.name = name; });
+                return m.reply(`✅ The greeting card will now carry the name *${name}*`);
             }
 
             case 'tz': case 'timezone': case 'zone': {
@@ -179,3 +187,4 @@ module.exports = {
         }
     },
 };
+                                        
