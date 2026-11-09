@@ -6,60 +6,67 @@ const tz = require('../../lib/timezone');
 const SLOT_ALIASES = {
     morning: 'morning', am: 'morning', m: 'morning',
     afternoon: 'afternoon', noon: 'afternoon', pm: 'afternoon', a: 'afternoon',
-    night: 'night', n: 'night', evening: 'night',
+    evening: 'evening', eve: 'evening', e: 'evening',
+    night: 'night', n: 'night',
 };
 
 const RULE = '━━━━━━━━━━━━━━━━━━';
+const SLOT_WORDS = '<morning|afternoon|evening|night>';
 
-function panel(bot, settings) {
+/** The group a command is about: the current group, or a group JID given as an argument. */
+function targetGroup(m, args) {
+    if (m.isGroup) return m.chat;
+    const jid = args.find(a => G.isGroupJid(String(a).trim()));
+    return jid ? String(jid).trim() : null;
+}
+
+async function groupName(bot, jid) {
+    try {
+        const meta = await require('../../lib/groupMetaCache').get(bot, jid);
+        return meta?.subject || jid;
+    } catch {
+        return jid;
+    }
+}
+
+async function panel(bot, m, settings) {
     const zone = G.currentZone(settings);
     const p = G.zonedParts(new Date(), zone);
     const usingOverride = Boolean(settings.tz && tz.normalize(settings.tz));
-    const jid = G.ownerJid(bot);
     const P = bot.prefix || '.';
+    const groups = G.enabledGroups(settings);
 
     const schedule = G.SLOTS
         .map(slot => `${G.META[slot].emoji} ${G.META[slot].label.padEnd(10)} ${G.slotLabelTime(settings, slot)}`)
         .join('\n');
 
-    const designs = G.SLOTS
-        .map(slot => {
-            const pref = settings.designs?.[slot] ?? 'rotate';
-            const n = Number(pref);
-            const text = Number.isInteger(n) && n >= 1 && n <= G.DESIGNS[slot].length
-                ? `#${n} ${G.DESIGNS[slot][n - 1]}`
-                : `${pref === 'random' ? 'random' : 'rotates daily'} (${G.DESIGNS[slot].length})`;
-            return `${G.META[slot].emoji} ${G.META[slot].label.padEnd(10)} ${text}`;
-        })
-        .join('\n');
+    let here = '';
+    if (m.isGroup) {
+        const g = settings.groups[m.chat];
+        here = `This group  ${g?.enabled ? '✅ *ON*' : '❌ *OFF*'}${g?.enabled ? `   ·   tag all: ${g.tag ? 'on' : 'off'}` : ''}\n`;
+    }
 
     return [
-        '🌅 *GREETINGS*',
+        '🌅 *GROUP GREETINGS*',
         RULE,
-        `Status   ${settings.enabled ? '✅ *ON*' : '❌ *OFF*'}`,
-        `Sent to  owner only${jid ? ` (@${jid.split('@')[0]})` : ''}`,
-        `Name     ${settings.name || '_your WhatsApp mention_'}`,
-        `Card     ${settings.card ? 'image card + caption' : 'text only'}`,
+        here + `Groups on   *${groups.length}*`,
+        `Card        ${settings.card ? 'photo card + caption' : 'text only'}`,
         '',
         '⏰ *Schedule*',
         '```',
         schedule,
         '```',
-        '🎨 *Designs*',
-        '```',
-        designs,
-        '```',
         `🌍 *${tz.label(zone)}*${usingOverride ? ' _(greetings override)_' : ' _(bot timezone)_'}`,
         `🕒 Now: ${G.clock12(p.hour, p.minute)}`,
         RULE,
-        `*${P}greetings on* / *off*`,
-        `*${P}greetings test* [morning|afternoon|night]`,
-        `*${P}greetings name* <text>`,
-        `*${P}greetings time* <slot> <time>`,
-        `*${P}greetings design* <slot> <1-4|rotate|random>`,
-        `*${P}gpreview* <morning|afternoon|night>`,
+        `*${P}greetings on* / *off*  _(send it inside the group)_`,
+        `*${P}greetings groups*  _(list the groups that get greetings)_`,
+        `*${P}greetings test* [${SLOT_WORDS.slice(1, -1)}]`,
+        `*${P}greetings tag* on / off  _(notify every member)_`,
+        `*${P}greetings time* ${SLOT_WORDS} <time>`,
         `*${P}greetings tz* <zone>  (e.g. Africa/Lagos)`,
         `*${P}greetings card* on / off`,
+        `*${P}gpreview* ${SLOT_WORDS.replace('>', '|all>')}  _(works in DM too)_`,
     ].join('\n');
 }
 
@@ -68,8 +75,8 @@ module.exports = {
     aliases: ['greeting', 'greet'],
     category: 'owner',
     reactions: { start: '🌅' },
-    description: 'Greet the owner every morning, afternoon and night (timezone aware).',
-    usage: '.greetings on | off | status | test | name | time | design | tz | card',
+    description: 'Greet a group every morning, afternoon, evening and night (timezone aware).',
+    usage: '.greetings on | off | status | groups | test | tag | time | tz | card',
     ownerOnly: true,
 
     async execute(bot, m, args) {
@@ -82,42 +89,52 @@ module.exports = {
 
         switch (sub) {
             case 'on': case 'enable': case 'start': {
-                const settings = G.update(s => {
-                    s.enabled = true;
-                    if (!s.name && m.pushName) s.name = String(m.pushName).trim().slice(0, 28);
-                });
-                return m.reply(`✅ *Greetings enabled*\n\n${panel(bot, settings)}`);
+                const jid = targetGroup(m, rest);
+                if (!jid) return m.reply(`👥 Greetings are sent to *groups*.\nSend *${P}greetings on* inside the group you want, or from here use:\n*${P}greetings on <group id>*  _(ends with @g.us)_`);
+                const settings = G.enableGroup(jid);
+                const name = m.isGroup ? '' : ` for *${await groupName(bot, jid)}*`;
+                const times = G.SLOTS.map(s => `${G.META[s].emoji} ${G.META[s].label} ${G.slotLabelTime(settings, s)}`).join('\n');
+                return m.reply(`✅ *Greetings enabled*${name}\n${RULE}\n${times}\n${RULE}\n_Try it now with_ *${P}greetings test*\n_Turn it off with_ *${P}greetings off*`);
             }
 
             case 'off': case 'disable': case 'stop': {
-                const settings = G.update(s => { s.enabled = false; });
-                return m.reply(`❌ *Greetings disabled*\n\n_Turn them back on with_ *${P}greetings on*\n\n${panel(bot, settings)}`);
+                const jid = targetGroup(m, rest);
+                if (!jid) return m.reply(`Send *${P}greetings off* inside the group, or *${P}greetings off <group id>* from here.`);
+                G.disableGroup(jid);
+                return m.reply(`❌ *Greetings disabled*${m.isGroup ? '' : ` for *${await groupName(bot, jid)}*`}\n_Turn them back on with_ *${P}greetings on*`);
             }
 
             case 'status': case 'info': case 'help':
-                return m.reply(panel(bot, G.readSettings()));
+                return m.reply(await panel(bot, m, G.readSettings()));
+
+            case 'groups': case 'list': {
+                const list = G.enabledGroups();
+                if (!list.length) return m.reply(`No group has greetings yet.\nSend *${P}greetings on* inside a group to start.`);
+                const names = [];
+                for (const jid of list.slice(0, 40)) names.push(await groupName(bot, jid));
+                const lines = names.map((n, i) => `${i + 1}. ${n}`).join('\n');
+                return m.reply(`👥 *Groups with greetings* (${list.length})\n${RULE}\n${lines}${list.length > 40 ? `\n…and ${list.length - 40} more` : ''}`);
+            }
 
             case 'test': {
                 const slot = SLOT_ALIASES[String(rest[0] || 'morning').toLowerCase()];
-                if (!slot) return m.reply(`Choose one: *morning*, *afternoon* or *night*.\nExample: ${P}greetings test night`);
+                if (!slot) return m.reply(`Choose one: *morning*, *afternoon*, *evening* or *night*.\nExample: ${P}greetings test evening`);
                 try {
-                    await G.sendGreeting(bot, slot);
-                    return m.reply(`🧪 Sent a *${G.META[slot].label.toLowerCase()}* greeting to the owner number.`);
+                    // In a group this is the real greeting; in DM it is a preview.
+                    await G.sendGreeting(bot, slot, m.chat, { preview: !m.isGroup });
                 } catch (err) {
                     return m.reply(`⚠️ Could not send the test: ${err.message}`);
                 }
+                return;
             }
 
-            case 'name': {
-                const value = rest.join(' ').trim();
-                if (!value) return m.reply(`Usage: *${P}greetings name* <your name>\nUse *${P}greetings name reset* to go back to a WhatsApp mention.`);
-                if (['reset', 'default', 'off'].includes(value.toLowerCase())) {
-                    G.update(s => { s.name = ''; });
-                    return m.reply('✅ Name cleared. Greetings now mention your WhatsApp contact.');
-                }
-                const name = value.slice(0, 28);
-                G.update(s => { s.name = name; });
-                return m.reply(`✅ Greetings will now say *GOOD MORNING @${name}*`);
+            case 'tag': case 'tagall': {
+                const v = String(rest.find(a => ['on', 'off'].includes(String(a).toLowerCase())) || '').toLowerCase();
+                const jid = targetGroup(m, rest);
+                if (!v || !jid) return m.reply(`Usage (inside the group): *${P}greetings tag on|off*\nWhen on, every member gets notified by the greeting (without a long list of names).`);
+                if (!G.readSettings().groups[jid]?.enabled) return m.reply(`Turn greetings on first with *${P}greetings on*.`);
+                G.update(s => { s.groups[jid].tag = v === 'on'; });
+                return m.reply(v === 'on' ? '🔔 Every member will be notified by the greetings.' : '🔕 Greetings will no longer notify every member.');
             }
 
             case 'tz': case 'timezone': case 'zone': {
@@ -141,31 +158,13 @@ module.exports = {
                 const slot = SLOT_ALIASES[String(rest[0] || '').toLowerCase()];
                 const clock = G.parseClock(rest.slice(1).join(' '));
                 if (!slot || !clock) {
-                    return m.reply(`Usage: *${P}greetings time* <morning|afternoon|night> <time>\nExamples:\n${P}greetings time morning 6:30am\n${P}greetings time night 23:00`);
+                    return m.reply(`Usage: *${P}greetings time* ${SLOT_WORDS} <time>\nExamples:\n${P}greetings time morning 6:30am\n${P}greetings time night 23:00`);
                 }
-                const settings = G.update(s => { s.times[slot] = clock; delete s.lastSent[slot]; });
+                const settings = G.update(s => {
+                    s.times[slot] = clock;
+                    for (const g of Object.values(s.groups)) if (g?.lastSent) delete g.lastSent[slot];
+                });
                 return m.reply(`✅ ${G.META[slot].emoji} *${G.META[slot].label}* greeting moved to *${G.slotLabelTime(settings, slot)}*`);
-            }
-
-            case 'design': case 'designs': case 'style': {
-                const slot = SLOT_ALIASES[String(rest[0] || '').toLowerCase()];
-                if (!slot) {
-                    const list = G.SLOTS
-                        .map(sl => `${G.META[sl].emoji} *${G.META[sl].label}*\n${G.DESIGNS[sl].map((n, i) => `  ${i + 1}. ${n}`).join('\n')}`)
-                        .join('\n\n');
-                    return m.reply(`🎨 *Greeting designs*\n${RULE}\n${list}\n${RULE}\nPick one: *${P}greetings design morning 1*\nOr: *${P}greetings design morning rotate* / *random*\nSee it first: *${P}gpreview morning 1*`);
-                }
-                const choice = String(rest[1] || '').toLowerCase();
-                const n = Number(choice);
-                const count = G.DESIGNS[slot].length;
-                let value;
-                if (choice === 'rotate' || choice === 'daily') value = 'rotate';
-                else if (choice === 'random' || choice === 'shuffle') value = 'random';
-                else if (Number.isInteger(n) && n >= 1 && n <= count) value = String(n);
-                else return m.reply(`Choose a number from 1 to ${count}, or *rotate* / *random*.\nExample: ${P}greetings design ${slot} 1`);
-                G.update(s => { s.designs[slot] = value; });
-                const label = value === 'rotate' ? 'a different design every day' : value === 'random' ? 'a random design each time' : `design ${value}: ${G.DESIGNS[slot][Number(value) - 1]}`;
-                return m.reply(`✅ ${G.META[slot].emoji} *${G.META[slot].label}* will use ${label}.`);
             }
 
             case 'card': case 'image': {
@@ -176,8 +175,7 @@ module.exports = {
             }
 
             default:
-                return m.reply(panel(bot, G.readSettings()));
+                return m.reply(await panel(bot, m, G.readSettings()));
         }
     },
 };
-                                                                                                    
