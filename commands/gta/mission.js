@@ -1,5 +1,5 @@
 const { getGtaUser, saveGtaUser, CHARACTERS, EVENTS, getWantedLabel, GANGS } = require('../../lib/gtaEngine');
-const { loadDB, saveDB, getUser, fmt } = require('../../lib/economyEngine');
+const { loadDB, saveDB, getUser, addXP, fmt } = require('../../lib/economyEngine');
 
 const MISSION_CD = 30 * 60 * 1000; // 30 mins
 
@@ -60,7 +60,8 @@ module.exports = {
                 saveGtaUser(m.sender, gta);
                 const db = loadDB(); const user = getUser(db, m.sender);
                 user.wallet = (user.wallet||0) + reward;
-                user.xp     = (user.xp||0) + 20;
+                user.stats.earned = (user.stats.earned || 0) + reward;
+                addXP(user, 20);
                 saveDB(db);
                 return await m.reply(
 `✅ *MISSION COMPLETE!*

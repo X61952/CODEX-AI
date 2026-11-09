@@ -50,6 +50,7 @@ Example: ${bot.prefix}ammo buy ak47 3`);
             const db   = loadDB(); const user = getUser(db, m.sender);
             if ((user.wallet||0) < cost) return await m.reply(`❌ Need 🪙${fmt(cost)}\nYou have: 🪙${fmt(user.wallet||0)}`);
             user.wallet -= cost;
+            user.stats.spent = (user.stats.spent || 0) + cost;
             saveDB(db);
             if (!gta.ammo) gta.ammo = {};
             gta.ammo[weapon] = (gta.ammo[weapon] || 0) + (AMMO_PACKS[weapon].perPack * packs);

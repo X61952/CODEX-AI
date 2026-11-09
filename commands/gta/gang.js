@@ -58,6 +58,7 @@ Use ${bot.prefix}gang leave to leave`);
             const ecoUser = getUser(ecoDb, m.sender);
             if ((ecoUser.wallet||0) < JOIN_COST) return await m.reply(`❌ Need 🪙${fmt(JOIN_COST)} to join. You have: 🪙${fmt(ecoUser.wallet||0)}`);
             ecoUser.wallet -= JOIN_COST;
+            ecoUser.stats.spent = (ecoUser.stats.spent || 0) + JOIN_COST;
             const { saveDB } = require('../../lib/economyEngine');
             saveDB(ecoDb);
             gta.gang    = pick;

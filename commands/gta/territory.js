@@ -1,7 +1,9 @@
 const { getGtaUser, saveGtaUser, getTerritories, saveTerritories, getGangDb, saveGangDb, GANGS, WEAPONS, getWantedLabel } = require('../../lib/gtaEngine');
-const { loadDB, saveDB, getUser, fmt } = require('../../lib/economyEngine');
+const { loadDB, saveDB, getUser, addXP, onCooldown, setCooldown, formatCooldown, fmt } = require('../../lib/economyEngine');
 
 const WAR_CD = 2 * 60 * 60 * 1000; // 2 hours
+const TERRITORY_INCOME_CD = 24 * 60 * 60 * 1000;
+const MAX_INCOME_HOURS = 24;
 
 module.exports = {
     name: 'territory',
@@ -21,21 +23,50 @@ module.exports = {
                 const g = t.gang ? (GANGS[t.gang]?.tag || t.gang) : '⚪ Neutral';
                 return `${g} — *${t.name}* (🪙${t.value}/hr)`;
             }).join('\n');
-            const gangs = getGangDb();
             const income = terrs.filter(t => t.gang === gta.gang).reduce((s,t) => s + t.value, 0);
             return await m.reply(
 `🗺️ *LOS SANTOS TERRITORY MAP*
 
 ${map}
 
-${gta.gang ? `${GANGS[gta.gang]?.emoji} Your gang income: 🪙${income}/hr from ${terrs.filter(t=>t.gang===gta.gang).length} territories` : 'Join a gang to claim territory'}
+${gta.gang ? `${GANGS[gta.gang]?.emoji} Your gang income: 🪙${income}/hr from ${terrs.filter(t=>t.gang===gta.gang).length} territories\nCollect up to 24 hours: ${bot.prefix}territory collect` : 'Join a gang to claim territory'}
 
 Attack: ${bot.prefix}territory attack <name>`);
         }
 
+        if (sub === 'collect' || sub === 'claim') {
+            if (!gta.gang) return await m.reply('❌ Join a gang first to collect turf income.');
+            const incomePerHour = terrs
+                .filter(t => t.gang === gta.gang)
+                .reduce((total, territory) => total + territory.value, 0);
+            if (!incomePerHour) return await m.reply('❌ Your gang controls no territories to collect income from.');
+
+            const db = loadDB();
+            const economyUser = getUser(db, m.sender);
+            const now = Date.now();
+            const wait = onCooldown(economyUser, 'territoryIncome', TERRITORY_INCOME_CD);
+            if (wait) {
+                return await m.reply(`⏳ Turf income is already collected. Try again in *${formatCooldown(wait)}*.`);
+            }
+            const lastClaim = economyUser.cooldowns.territoryIncome || now - 60 * 60 * 1000;
+            const elapsed = Math.min(now - lastClaim, MAX_INCOME_HOURS * 60 * 60 * 1000);
+            const income = Math.floor(incomePerHour * elapsed / (60 * 60 * 1000));
+            if (!income) return await m.reply('⏳ Your turf has not generated any claimable income yet.');
+
+            economyUser.wallet += income;
+            economyUser.stats.earned = (economyUser.stats.earned || 0) + income;
+            setCooldown(economyUser, 'territoryIncome');
+            saveDB(db);
+            return await m.reply(
+                `💵 Collected *${fmt(income)}* codex from your gang's territories.\n` +
+                `Rate: ${fmt(incomePerHour)} codex/hour (up to 24 hours).\n` +
+                `Wallet: *${fmt(economyUser.wallet)}* codex.`
+            );
+        }
+
         if (sub === 'attack') {
             if (!gta.gang) return await m.reply('❌ Join a gang first!');
-            if (!gta.weapons?.length || gta.weapons[0] === 'fists') return await m.reply('❌ Get a weapon first!');
+            if (!gta.weapon || gta.weapon === 'fists') return await m.reply('❌ Get a weapon first!');
             const tName = args.slice(1).join(' ').toLowerCase();
             const terr  = terrs.find(t => t.name.toLowerCase().includes(tName) || t.id.includes(tName));
             if (!terr) return await m.reply(`❌ Territory not found. Use ${bot.prefix}territory map`);
@@ -76,6 +107,8 @@ Attack: ${bot.prefix}territory attack <name>`);
                 const reward = terr.value * 2;
                 const db = loadDB(); const user = getUser(db, m.sender);
                 user.wallet = (user.wallet||0) + reward;
+                user.stats.earned = (user.stats.earned || 0) + reward;
+                addXP(user, 25);
                 saveDB(db);
                 const gangs = getGangDb();
                 if (!gangs[gta.gang]) gangs[gta.gang] = { territories: [] };
@@ -110,6 +143,6 @@ ${terr.gang ? `${GANGS[terr.gang]?.name} held their ground.` : 'Neutrals pushed 
 Heal up before attacking again!`);
             }
         }
-        return await m.reply(`Usage: ${bot.prefix}territory map/attack <name>`);
+        return await m.reply(`Usage: ${bot.prefix}territory map/attack <name>/collect`);
     }
 };

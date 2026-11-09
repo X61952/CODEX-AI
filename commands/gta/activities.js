@@ -1,5 +1,6 @@
 const { action, user, save } = require('../../lib/gtaFeatures');
-const { loadDB, saveDB, getUser, fmt } = require('../../lib/economyEngine');
+const { loadDB, saveDB, getUser, addXP, fmt } = require('../../lib/economyEngine');
+const { addWantedStars, getWantedLabel } = require('../../lib/gtaEngine');
 
 const activities = {
     race: [300, 1200],
@@ -8,6 +9,14 @@ const activities = {
     collect: [200, 600],
     streetfight: [400, 1800],
     chopshop: [700, 2500],
+};
+
+const VEHICLE_BONUS = {
+    bicycle: 0.1,
+    lowrider: 0.2,
+    infernus: 0.35,
+    hunter: 0.3,
+    hydra: 0.5,
 };
 
 module.exports = {
@@ -32,20 +41,40 @@ module.exports = {
             );
         }
 
+        const { u: availableAssets } = user(m.sender);
+        if (['race', 'chopshop'].includes(activity) && !availableAssets.vehicles.length) {
+            return await m.reply(
+                `You need a vehicle for ${activity}. Buy one with ${bot.prefix}garage.`
+            );
+        }
+
         const result = action(m.sender, activity);
         if (!result.ok) return await m.reply(result.message);
 
         const db = loadDB();
         const economyUser = getUser(db, m.sender);
-        const reward = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
+        const vehicleBonus = ['race', 'chopshop'].includes(activity)
+            ? Math.max(...availableAssets.vehicles.map(vehicle => VEHICLE_BONUS[vehicle] || 0))
+            : 0;
+        const baseReward = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
+        const reward = Math.floor(baseReward * (1 + vehicleBonus));
         economyUser.wallet += reward;
-        economyUser.xp += Math.floor(reward / 10);
+        economyUser.stats.earned = (economyUser.stats.earned || 0) + reward;
+        addXP(economyUser, Math.floor(reward / 10));
         saveDB(db);
 
         const { db: gtaDb, u: gtaUser } = user(m.sender);
         if (activity === 'gym') gtaUser.skills.stamina = (gtaUser.skills.stamina || 1) + 1;
         save(m.sender, gtaUser, gtaDb);
 
-        return await m.reply(`${activity.toUpperCase()} complete. Earned ${fmt(reward)} codex.`);
+        const wanted = activity === 'rob'
+            ? `\nWanted: ${getWantedLabel(addWantedStars(m.sender, 1))}.`
+            : '';
+
+        return await m.reply(
+            `${activity.toUpperCase()} complete. Earned ${fmt(reward)} codex.` +
+            (vehicleBonus ? ` Vehicle bonus: +${Math.round(vehicleBonus * 100)}%.` : '') +
+            wanted
+        );
     },
 };
