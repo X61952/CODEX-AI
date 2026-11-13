@@ -1,5 +1,11 @@
 const fs   = require('fs');
 const path = require('path');
+const {
+    parseReactionCount,
+    MAX_STICKER_REACTION_ATTEMPTS,
+    getQuotedStickerMessage,
+    saveStickerReactionMessage,
+} = require('./sreact');
 
 const MENTION_FILE = path.join(__dirname, '../../database/mention_config.json');
 // The sticker the owner chose with `.mention -sticker` (raw .webp, sent as-is).
@@ -14,6 +20,7 @@ const mentionConfig = {
     action: '',
     emoji:  '❤️‍🔥',
     text:   '',
+    sreactCount: 1,             // how many sticker-reaction attempts per mention (1-10)
     audioMime: 'audio/mpeg',   // mimetype of the saved audio
     audioPtt:  false           // true = send as a voice note
 };
@@ -71,6 +78,7 @@ module.exports = {
                 `│ ✦ Emoji  : ${mentionConfig.emoji  || '-'}\n` +
                 `│ ❏ Text   : ${mentionConfig.text   || '-'}\n` +
                 `│ ✧ Sticker: ${fs.existsSync(STICKER_FILE) ? 'saved' : '-'}\n` +
+                `│ 🎭 SReact : ${mentionConfig.action === 'sreact' ? `${mentionConfig.sreactCount || 1}x` : '-'}\n` +
                 `│ ♫ Audio  : ${fs.existsSync(AUDIO_FILE) ? 'saved' : '-'}\n` +
                 `╰──────────────────`
             );
@@ -98,6 +106,38 @@ module.exports = {
             mentionConfig.text   = '';
             saveMentionConfig();
             return reply(`╭─❍ *MENTION*\n│\n│ ✦ Status : ON\n│ 𓄄 Action : REACT\n│ ⚉ Emoji  : ${mentionConfig.emoji}\n╰──────────────────`);
+        }
+
+        // STICKER REACTION: `.mention -sreact [count]` reacts to every message that
+        // mentions you with the saved sticker reaction (the one `.sreact` uses).
+        // Reply to a sticker while running it to replace the saved sticker reaction.
+        // `.mention -sreact off` disables it.
+        if (option === 'sreact' || option === '-sreact') {
+            const sub = (args[1] || '').toLowerCase();
+            if (sub === 'off') {
+                mentionConfig.active = false;
+                mentionConfig.action = '';
+                saveMentionConfig();
+                return reply('╭─❍ *MENTION-SREACT*\n│\n│ ✦ Status : OFF\n╰──────────────────');
+            }
+            const repeatCount = args.length <= 2 ? parseReactionCount(sub === 'on' ? undefined : args[1]) : null;
+            if (!repeatCount) {
+                return reply(`╭─❍ *MENTION-SREACT*\n│\n│ ✘ Usage: ${prefix}mention -sreact [1-${MAX_STICKER_REACTION_ATTEMPTS}]\n│ ⚉ ${prefix}mention -sreact off to disable\n╰──────────────────`);
+            }
+            if (getQuotedStickerMessage(m.quoted)) {
+                try {
+                    saveStickerReactionMessage(m.quoted);
+                } catch (e) {
+                    return reply(`╭─❍ *MENTION-SREACT*\n│\n│ ✘ Could not save that sticker: ${e.message}\n╰──────────────────`);
+                }
+            }
+            mentionConfig.active      = true;
+            mentionConfig.action      = 'sreact';
+            mentionConfig.sreactCount = repeatCount;
+            mentionConfig.emoji       = '';
+            mentionConfig.text        = '';
+            saveMentionConfig();
+            return reply(`╭─❍ *MENTION*\n│\n│ ✦ Status : ON\n│ 𓄄 Action : STICKER REACTION\n│ 🎭 Repeat : ${repeatCount}x\n╰──────────────────`);
         }
 
         // STICKER: reply to the sticker you want with `.mention -sticker`.
@@ -229,6 +269,9 @@ module.exports = {
             `│ ➫ ${prefix}mention -react <emoji>\n` +
             `│   Set emoji and enable\n` +
             `│   Example: ${prefix}mention -react 💚\n│\n` +
+            `│ ➫ ${prefix}mention -sreact [1-${MAX_STICKER_REACTION_ATTEMPTS}]\n` +
+            `│   React with a sticker when you are mentioned\n` +
+            `│   (reply to a sticker to change it, ${prefix}mention -sreact off to disable)\n│\n` +
             `│ ➫ ${prefix}mention -sticker\n` +
             `│   Reply to a sticker: it is sent when you are mentioned\n` +
             `│   (${prefix}mention -sticker off to disable)\n│\n` +
@@ -249,3 +292,4 @@ module.exports.norm = norm;
 module.exports.STICKER_FILE = STICKER_FILE;
 module.exports.AUDIO_FILE = AUDIO_FILE;
 
+            
