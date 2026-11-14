@@ -1,15 +1,9 @@
 'use strict';
 // .sreact — react to a message with a STICKER (WhatsApp "sticker reaction").
-//
-// Ported from CODY AI and adapted to CODEX's command structure:
-//   execute(bot, m, args)  ·  m.reply(...)  ·  m.quoted  ·  database/ in the project root
-// The same sendStickerReaction() is used by `.mention -sreact` (see mention.js
-// and the MENTION-REACT block in lib/messageHandler.js).
+
 const fs   = require('fs');
 const path = require('path');
 
-// Default animated sticker supplied by the repository owner. It is relayed as
-// a WhatsApp association reaction (type 11) to the targeted message.
 const DEFAULT_STICKER_MESSAGE = Object.freeze({
     url: 'https://mmg.whatsapp.net/o1/v/t24/f2/m232/AQPEoFVa7kEaTxJ5N4kBacoDZ1k0IzHqkfsmUhLxV8C4xB11yCktX6UEHvkJnmgTsnEhoRW27_Pma0f92oVnKzwBB4YUsMbtz2HlS_Oxeg?ccb=9-4&oh=01_Q5Aa5wEK3E2DIH-ZBY_naItwmTshYSHL2bClVxX2UUGd6_gOyw&oe=6B0DB1D3&_nc_sid=e6ed6c&mms3=true',
     fileSha256: 'BsnVlbXyY2a722AugpS5TLIuxPNmaHRU2Hi9vL90USY=',
@@ -30,16 +24,11 @@ const DEFAULT_STICKER_MESSAGE = Object.freeze({
     premium: 0
 });
 
-// Anchored to the project root (not process.cwd()), like the other owner commands.
 const SREACT_FILE = path.join(__dirname, '../../database/sreact_sticker.json');
 const MAX_STICKER_REACTION_ATTEMPTS = 10;
 const STICKER_REACTION_DELAY_MS = 250;
 const STICKER_FIELDS = ['stickerMessage', 'lottieStickerMessage'];
 
-const box = (title, lines) =>
-    `┏━━━ ✦ *${title}* ✦ ━━━┓\n${lines.map((l) => `┃ ${l}`).join('\n')}\n┗━━━━━━━━━━━━━━━━━━┛`;
-
-// 1-10 (default 1). Returns null for anything else.
 function parseReactionCount(value) {
     if (value === undefined || value === null || value === '') return 1;
     if (!/^[1-9]\d*$/.test(String(value))) return null;
@@ -47,8 +36,6 @@ function parseReactionCount(value) {
     return Number.isSafeInteger(count) && count <= MAX_STICKER_REACTION_ATTEMPTS ? count : null;
 }
 
-// The sticker content of a replied-to message, in CODEX's m.quoted shape
-// ({ message, msg, mtype }) — raw-message shapes are accepted too.
 function getQuotedStickerMessage(quoted) {
     if (!quoted) return null;
     for (const field of STICKER_FIELDS) {
@@ -59,9 +46,6 @@ function getQuotedStickerMessage(quoted) {
     return null;
 }
 
-// Baileys hands us Buffers / Long numbers; JSON.stringify would turn those into
-// {type:'Buffer',data:[...]} objects that cannot be relayed again. Store bytes
-// as base64 strings and Longs as decimal strings, which protobuf accepts.
 function toPlain(value) {
     if (value === null || value === undefined) return value;
     if (Buffer.isBuffer(value) || value instanceof Uint8Array) return Buffer.from(value).toString('base64');
@@ -99,7 +83,6 @@ function saveStickerReactionMessage(quoted) {
     return true;
 }
 
-// Relays the saved sticker as a reaction to `parentMessageKey`, `count` times.
 async function sendStickerReaction(sock, jid, parentMessageKey, count = 1) {
     const attempts = parseReactionCount(count);
     if (!attempts || !jid || !parentMessageKey?.id || typeof sock?.relayMessage !== 'function') return false;
@@ -120,54 +103,48 @@ async function sendStickerReaction(sock, jid, parentMessageKey, count = 1) {
 }
 
 module.exports = {
-    name:      'sreact',
-    alias:     ['stickerreact', 'sr'],
-    desc:      'React to a replied message with the saved sticker reaction',
-    category:  'owner',
+    name: 'sreact',
+    alias: ['stickerreact', 'sr'],
+    desc: 'React to a replied message with the saved sticker reaction',
+    category: 'owner',
     ownerOnly: true,
-    reactions: { start: '💫' },
 
     execute: async (bot, m, args = []) => {
         const prefix = bot.prefix || '.';
         const first  = String(args[0] || '').toLowerCase();
 
-        // .sreact add — reply to a sticker to make it the sticker reaction
         if (first === 'add' || first === 'set') {
             if (args.length !== 1) {
-                return m.reply(box('SREACT', [`❌ Reply to a sticker and send ${prefix}sreact add`]));
+                return m.reply(`Reply to a sticker and send ${prefix}sreact add`);
             }
             if (!getQuotedStickerMessage(m.quoted)) {
-                return m.reply(box('SREACT', [
-                    `❌ Reply to a sticker with ${prefix}sreact add`,
-                    '➤ It becomes your sticker reaction',
-                ]));
+                return m.reply(`Reply to a sticker with ${prefix}sreact add to set it as your sticker reaction`);
             }
             try {
                 saveStickerReactionMessage(m.quoted);
             } catch (e) {
-                return m.reply(box('SREACT', [`❌ Could not save that sticker: ${e.message}`]));
+                return m.reply(`Could not save that sticker: ${e.message}`);
             }
-            return m.reply(box('SREACT', ['★ Status : SAVED', '☆ New sticker reaction saved']));
+            return m.reply('New sticker reaction saved');
         }
 
-        // .sreact [count] — reply to the message you want to react to
         const count = args.length <= 1 ? parseReactionCount(args[0]) : null;
         if (!count) {
-            return m.reply(box('SREACT', [
-                `➤ Reply to a message: ${prefix}sreact [1-${MAX_STICKER_REACTION_ATTEMPTS}]`,
-                `➤ Reply to a sticker: ${prefix}sreact add`,
-                `➤ On mentions: ${prefix}mention -sreact [count]`,
-            ]));
+            return m.reply(
+                `Usage:\n` +
+                `Reply to a message: ${prefix}sreact [1-${MAX_STICKER_REACTION_ATTEMPTS}]\n` +
+                `Reply to a sticker: ${prefix}sreact add\n` +
+                `On mentions: ${prefix}mention -sreact [count]`
+            );
         }
         const targetKey = m.quoted?.key;
         if (!targetKey?.id) {
-            return m.reply(box('SREACT', [`❌ Reply to the message you want to react to, then send ${prefix}sreact [count]`]));
+            return m.reply(`Reply to the message you want to react to, then send ${prefix}sreact [count]`);
         }
 
-        // Replying to a sticker also makes it the saved sticker reaction.
         if (getQuotedStickerMessage(m.quoted)) {
             try { saveStickerReactionMessage(m.quoted); } catch (e) {
-                return m.reply(box('SREACT', [`❌ Could not save that sticker: ${e.message}`]));
+                return m.reply(`Could not save that sticker: ${e.message}`);
             }
         }
 
@@ -177,7 +154,7 @@ module.exports = {
         } catch (e) {
             console.error('[SREACT]', e.message);
         }
-        if (!sent) return m.reply(box('SREACT', ['❌ Could not send the sticker reaction in this chat']));
+        if (!sent) return m.reply('Could not send the sticker reaction in this chat');
     },
 
     DEFAULT_STICKER_MESSAGE,
