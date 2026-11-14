@@ -1,7 +1,5 @@
 'use strict';
 
-const META_AI_BOT_USER = '867051314767696';
-
 const RULE = '━━━━━━━━━━━━━━━━━━';
 const row  = (label, value) => `▸ *${label}*  ${value}`;
 const card = (icon, title, rows = [], footer = '') =>
@@ -26,38 +24,11 @@ async function resolveGroupTarget(sock, value) {
     return /^\d{8,20}(-\d+)?@g\.us$/i.test(String(jid || '')) ? jid : null;
 }
 
-function readAddResults(result) {
-    const children = (node) => (Array.isArray(node?.content) ? node.content : []);
-    const add = children(result).find((n) => n?.tag === 'add');
-    return children(add)
-        .filter((n) => n?.tag === 'participant')
-        .map((n) => ({ status: n.attrs?.error || '200', jid: n.attrs?.jid }));
-}
-
-async function addMetaAI(sock, groupJid, botUser = META_AI_BOT_USER) {
-    if (typeof sock.aiGroupAddBot === 'function') {
-        return sock.aiGroupAddBot(groupJid, botUser);
-    }
-    if (typeof sock.query !== 'function') {
-        throw new Error('This Baileys build cannot add Meta AI to groups');
-    }
-    const result = await sock.query({
-        tag: 'iq',
-        attrs: { type: 'set', xmlns: 'w:g2', to: groupJid },
-        content: [{
-            tag: 'add',
-            attrs: {},
-            content: [{ tag: 'participant', attrs: { jid: `${botUser}@bot` } }],
-        }],
-    });
-    return readAddResults(result);
-}
-
 module.exports = {
     name:      'addmeta',
     alias:     ['metagroup', 'addmetabot'],
-    desc:      'Add Meta AI to a group',
-    description: 'Add Meta AI to a group.',
+    desc:      'Add Meta AI to an AI group',
+    description: 'Add Meta AI to an AI group.',
     category:  'group',
     ownerOnly: true,
     usage:     '.addmeta here | <group link> | <group JID>',
@@ -70,7 +41,7 @@ module.exports = {
             return m.reply(card('🤖', 'ADD META AI', [
                 row('Usage', `${prefix}addmeta here | <group link> | <group JID>`),
                 row('here', 'the group you are in'),
-            ], 'Adds Meta AI to a group'));
+            ], 'Adds Meta AI to an AI group'));
         }
 
         try {
@@ -90,29 +61,35 @@ module.exports = {
                 return m.reply(card('⚠️', 'INVALID TARGET', ['Provide a valid WhatsApp group link or group JID.']));
             }
 
-            const results = await addMetaAI(bot.sock, groupJid);
-            const failed = (Array.isArray(results) ? results : []).find((r) => r?.status && String(r.status) !== '200');
-            if (failed) {
-                const reason = {
-                    403: 'I need to be an admin (or members must be allowed to add)',
-                    409: 'Meta AI is already in that group',
-                    401: 'Not allowed to add Meta AI to that group',
-                }[Number(failed.status)] || `WhatsApp refused (code ${failed.status})`;
-                return m.reply(card('❌', 'COULD NOT ADD', [reason + '.']));
+            // ✅ Use the dedicated method – no extra arguments
+            if (typeof bot.sock.aiGroupAddBot !== 'function') {
+                return m.reply(card('❌', 'UNSUPPORTED BUILD', [
+                    'This Baileys build does not support adding Meta AI to AI groups.',
+                    'Update to a version that includes `aiGroupAddBot`.',
+                ]));
             }
-            return m.reply(card('✅', 'META AI', [row('Status', 'invoked'), row('Group', groupJid.split('@')[0])]));
+
+            await bot.sock.aiGroupAddBot(groupJid);
+
+            return m.reply(card('✅', 'META AI', [
+                row('Status', 'invoked'),
+                row('Group', groupJid.split('@')[0]),
+            ]));
         } catch (err) {
             console.error('[ADDMETA]', err?.message || err);
-            const msg = /not-authorized|forbidden/i.test(err?.message || '')
-                ? 'I need to be an admin in that group first'
-                : (err?.message || 'Unable to add Meta AI to that group');
+            const msg = err?.message || 'Unable to add Meta AI to that group';
+            // Provide a more accurate explanation for common failures
+            if (/403|forbidden/i.test(msg)) {
+                return m.reply(card('❌', 'COULD NOT ADD', [
+                    'Meta AI can only be added to **AI groups** (created with `aiGroupCreate`).',
+                    'If this is an AI group, make sure the bot is an admin and Meta AI is not already present.',
+                    'WhatsApp may also block the request for other policy reasons.',
+                ]));
+            }
             return m.reply(card('❌', 'COULD NOT ADD', [msg + '.']));
         }
     },
 };
 
-module.exports.META_AI_BOT_USER = META_AI_BOT_USER;
 module.exports.extractInviteCode = extractInviteCode;
 module.exports.resolveGroupTarget = resolveGroupTarget;
-module.exports.addMetaAI = addMetaAI;
-module.exports.readAddResults = readAddResults;
