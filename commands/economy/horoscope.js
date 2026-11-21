@@ -22,7 +22,7 @@ module.exports = {
         }
         try {
             const { data } = await axios.get(
-                `https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=${sign}&day=TODAY`,
+                `https://freehoroscopeapi.com/api/v1/get-horoscope/daily?sign=${sign}&day=TODAY`,
                 { timeout: 10000 }
             );
             const h    = data?.data;
